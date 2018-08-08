@@ -110,7 +110,7 @@ class AndorCameraDevice(camera.CameraDevice):
                               self.config.get('isWaterCooled', False)})
         #set the water cooling on if config is True.
         if self.settings.get('isWaterCooled'):
-            self.proxy..update_settings({'isWaterCooled': True})
+            self.proxy.update_settings({'isWaterCooled': True})
         self.setTargetTemperature(self.config.get('TargetTemperature', -40))
         self.settings['EMGain'] = 0
         self.settings['amplifierMode'] = None
