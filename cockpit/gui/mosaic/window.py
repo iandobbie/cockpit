@@ -102,6 +102,14 @@ class MosaicWindow(wx.Frame):
     def __init__(self, *args, **kwargs):
         wx.Frame.__init__(self, *args, **kwargs)
         self.SetWindowStyle(self.GetWindowStyle() | wx.FRAME_NO_TASKBAR)
+        #set window icon
+        self.bitmapsPath = cockpit.gui.BITMAPS_PATH
+
+        icon = wx.Icon(wx.Bitmap(os.path.join( self.bitmapsPath,
+                                                    "cockpit.ico"), 
+                                      wx.BITMAP_TYPE_ANY))
+        self.SetIcon(icon)
+
         self.panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
