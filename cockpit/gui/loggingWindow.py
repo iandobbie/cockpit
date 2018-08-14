@@ -56,6 +56,9 @@
 import sys
 import wx
 import wx.aui
+import wx.adv
+import os
+import cockpit.gui
 
 import cockpit.util.logger
 
@@ -69,6 +72,15 @@ class LoggingWindow(wx.Frame):
                  style = wx.CAPTION | wx.MAXIMIZE_BOX | wx.FRAME_NO_TASKBAR |
                          wx.RESIZE_BORDER | wx.STAY_ON_TOP):
         wx.Frame.__init__(self, parent, title = title, style = style)
+
+        #set window icon
+        self.bitmapsPath = cockpit.gui.BITMAPS_PATH
+        self.tbicon=wx.adv.TaskBarIcon()
+        icon = wx.Icon(wx.Bitmap(os.path.join( self.bitmapsPath,
+                                                    "cockpit.ico"), 
+                                      wx.BITMAP_TYPE_ANY))
+        self.tbicon.SetIcon(icon)
+        self.SetIcon(icon)
 
         self.auiManager = wx.aui.AuiManager()
         self.auiManager.SetManagedWindow(self)
