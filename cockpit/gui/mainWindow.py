@@ -73,6 +73,7 @@ import cockpit.util.userConfig
 from . import viewFileDropTarget
 import cockpit.gui
 import os
+import wx.adv
 
 from six import iteritems
 
@@ -95,10 +96,11 @@ class MainWindow(wx.Frame):
 
         #set window icon
         self.bitmapsPath = cockpit.gui.BITMAPS_PATH
-
+        self.tbicon=wx.adv.TaskBarIcon(iconType=wx.adv.TBI_DEFAULT_TYPE)
         icon = wx.Icon(wx.Bitmap(os.path.join( self.bitmapsPath,
                                                     "cockpit.ico"), 
                                       wx.BITMAP_TYPE_ANY))
+        self.tbicon.SetIcon(icon)
         self.SetIcon(icon)
         # Find out what devices we have to work with.
         lightToggles = depot.getHandlersOfType(depot.LIGHT_TOGGLE)
