@@ -249,7 +249,7 @@ class MyFrame1(wx.Frame):
     def changeObjective(self,newValue):
         newObj=self.combo_box_obj.GetValue()
         self.objectives.changeObjective(newObj)
-        self.PixelSize=self.objectives.getPixelSize()
+#        self.PixelSize=self.objectives.getPixelSize()
         
     def __set_properties(self):
         # begin wxGlade: MyFrame1.__set_properties
