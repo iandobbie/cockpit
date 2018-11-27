@@ -77,8 +77,8 @@ class ShutterDevice(device.Device):
             self.enableTrigger()
         elif not enab and not any([l.getIsEnabled() for l in self.lights]):
             # All of our lights are disabled.
-            self.enableTrigger(False)
-
+         #   self.enableTrigger(False)
+         pass
 
     def setExposureTime(self, t):
         print("Shutter %s exposure time set to %s." % (self.name, t))
