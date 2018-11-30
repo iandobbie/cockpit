@@ -73,7 +73,7 @@ class Configurator(cockpit.devices.device.Device):
                 'configDirectory': os.path.join(root, 'AA_MUI_CONFIG'),
         }
 		#Hck to get diamond files in the right place.
-        configdict['dataDirectory'] = 'X:' + os.path.sep + '2018' +os.path.sep + 'cm19681-5' +os.path.sep +'cryoSIM'
+        configdict['dataDirectory'] = 'X:' + os.path.sep +'data'+os.path.sep + '2018' +os.path.sep + 'cm19681-5' +os.path.sep +'cryoSIM'
 		
         # Update the configdict with values from config module.
         for opt in self.config:
