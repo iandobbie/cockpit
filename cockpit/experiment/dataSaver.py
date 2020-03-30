@@ -570,7 +570,7 @@ class StatusUpdateThread(threading.Thread):
             statusText.append('%s: %d/%d' % (name, curCount, maxCount))
 
         events.publish(events.UPDATE_STATUS_LIGHT, 'image count',
-                       '\n'.join(statusText), (255, 255, 0))
+                       ' | '.join(statusText), (255, 255, 0))
 
 
     ## Update our image count.

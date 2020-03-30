@@ -230,6 +230,9 @@ class MainWindow(wx.Frame):
         self.joystick = joystick.Joystick(self)
             
         self.SetDropTarget(viewFileDropTarget.ViewFileDropTarget(self))
+
+        self.SetStatusBar(_StatusLights(parent=self))
+
         self.Bind(wx.EVT_CLOSE, self.onClose)
         # Show the list of windows on right-click.
         self.Bind(wx.EVT_CONTEXT_MENU, lambda event: keyboard.martialWindows(self))
@@ -241,7 +244,6 @@ class MainWindow(wx.Frame):
     def onClose(self, event):
         events.publish('program exit')
         event.Skip()
-
 
     ## User clicked the "view last file" button; open the last experiment's
     # file in an image viewer. A bit tricky when there's multiple files 
@@ -378,6 +380,47 @@ class MainWindow(wx.Frame):
         self.bottomPanel.SetSizerAndFit(self.bottomPanel.GetSizer())
         self.SetSizerAndFit(self.GetSizer())
 
+
+class _StatusLights(wx.StatusBar):
+    def __init__(self, *args, **kwargs):
+        super().__init__(style=wx.STB_DEFAULT_STYLE & ~wx.STB_SIZEGRIP,
+                         *args, **kwargs)
+        # Maps status light names to the light field/pane index.
+        self._nameToField = {} # type: typing.Dict[str, int]
+        self._defaultBackgroundColour = self.GetBackgroundColour()
+
+        self.SetFont(self.GetFont().Larger().Larger())
+        self.Fit()
+
+        events.subscribe(events.UPDATE_STATUS_LIGHT, self._OnNewStatus)
+
+        # Some lights that we know we need.
+        self._OnNewStatus('image count', '')
+        self._OnNewStatus('device waiting', '')
+
+
+    # New light generated; insert it into our panel.
+    def _OnNewLight(self, lightName):
+        new_field_index = self.GetFieldsCount()
+        self.SetFieldsCount(new_field_index +1)
+        self.SetStatusStyles([wx.SB_SUNKEN]* (new_field_index +1))
+        self._nameToField[lightName] = new_field_index
+
+
+    # Update the status light with the specified name.  Create the
+    # light if it doesn't already exist.
+    @cockpit.util.threads.callInMainThread
+    def _OnNewStatus(self, lightName, text, backgroundColor=None):
+        if lightName not in self._nameToField:
+            self._OnNewLight(lightName)
+        self.SetStatusText(text, self._nameToField[lightName])
+
+        # This changes the colour of the whole bar, not only the status.
+        if backgroundColor is not None:
+            self.SetBackgroundColour(backgroundColor)
+
+        if all([not self.GetStatusText(i) for i in range(self.FieldsCount)]):
+            self.SetBackgroundColour(self._defaultBackgroundColour)
 
 
 ## Create the window.
