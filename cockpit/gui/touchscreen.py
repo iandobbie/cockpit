@@ -409,6 +409,10 @@ class TouchScreenWindow(wx.Frame, mosaic.MosaicCommon):
         self.panel.SetSizerAndFit(sizer)
         self.SetRect((0, 0, 1800, 1000))
 
+        #add status bar to bottom of touchscreen display
+        self.SetStatusBar(cockpit.gui.mainWindow._StatusLights(parent=self)) 
+
+        
         events.subscribe('stage position', self.onAxisRefresh)
         events.subscribe('stage step size', self.onAxisRefresh)
         events.subscribe('stage step index', self.stageIndexChange)
