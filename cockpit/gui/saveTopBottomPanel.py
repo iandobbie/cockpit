@@ -54,6 +54,8 @@
 import cockpit.interfaces.stageMover
 import cockpit.util.userConfig
 import wx
+import cockpit.gui.macroStage.macroStageWindow
+#import cockpit.gui.touchscreen
 
 ## @package saveTopBottomPanel
 # This module handles code related to the UI widget for saving the current
@@ -147,6 +149,8 @@ def OnTB_saveTop(ev):
     topPosControl.SetValue("%.1f" % savedTop)
     updateZStackHeight()
     cockpit.util.userConfig.setValue('savedTop', savedTop)
+    cockpit.gui.macroStage.macroStageWindow.window.macroStageZ.Refresh()
+    cockpit.gui.touchscreen.TSwindow.macroStageZ.Refresh()
 
 ## Event for handling users clicking on the "save bottom" button. Set 
 # savedBottom.
@@ -156,7 +160,10 @@ def OnTB_saveBottom(ev):
     bottomPosControl.SetValue("%.1f" % savedBottom)
     updateZStackHeight()
     cockpit.util.userConfig.setValue('savedBottom', savedBottom)
+    cockpit.gui.macroStage.macroStageWindow.window.macroStageZ.Refresh()
+    cockpit.gui.touchscreen.TSwindow.macroStageZ.Refresh()
 
+    
 ## Event for handling users clicking on the "go to top" button. Use the 
 # nanomover (and, optionally, also the stage piezo) to move to the target
 # elevation.
