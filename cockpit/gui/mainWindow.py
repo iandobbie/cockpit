@@ -120,7 +120,7 @@ class MainWindow(wx.Frame):
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         # Abort button
         abortButton = wx.Button(topPanel, wx.ID_ANY, "abort")
-        abortButton.SetLabelMarkup("<span foreground='red'><big><b>ABORT</b></big></span>")
+        abortButton.SetLabelMarkup("<span size='1000'>\n</span><span size='36000'><span foreground='red'><big><b>ABORT</b></big></span></span><span size='1000'>\n</span>")
         abortButton.Bind(wx.EVT_BUTTON, lambda event: events.publish(events.USER_ABORT))
         buttonSizer.Add(abortButton, 1, wx.EXPAND)
         # Experiment & review buttons
