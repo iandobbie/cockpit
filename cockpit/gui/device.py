@@ -218,7 +218,7 @@ class EnumChoice(wx.Choice):
 
 _BMP_SIZE=(16,16)
 
-_BMP_OFF = wx.Bitmap.FromRGBA(*_BMP_SIZE, red=0, green=32, blue=0,
+_BMP_OFF = wx.Bitmap.FromRGBA(*_BMP_SIZE, red=128, green=128, blue=128,
                              alpha=wx.ALPHA_OPAQUE)
 _BMP_ON = wx.Bitmap.FromRGBA(*_BMP_SIZE, red=0, green=255, blue=0,
                              alpha=wx.ALPHA_OPAQUE)
