@@ -204,7 +204,7 @@ class ObjectiveControls(wx.Panel):
         for o in depot.getHandlersOfType(depot.OBJECTIVE):
             ctrl = wx.Choice(panel)
             ctrl.Set(o.sortedObjectives)
-            panel.Sizer.Add(ctrl)
+            panel.Sizer.Add(ctrl,1, wx.EXPAND|wx.ALL, 3)
             ctrl.Bind(wx.EVT_CHOICE, lambda evt: o.changeObjective(evt.GetString()))
             events.subscribe("objective change",
                              lambda *a, **kw: ctrl.SetSelection(ctrl.FindString(a[0])))
