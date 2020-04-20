@@ -46,6 +46,7 @@ import Pyro4
 import wx
 from cockpit import events
 from cockpit.devices import device
+from cockpit.devices import stage
 from cockpit import depot
 import cockpit.gui.device
 import cockpit.handlers.deviceHandler
@@ -57,6 +58,7 @@ import cockpit.util.userConfig
 import cockpit.util.threads
 from cockpit.gui.device import SettingsEditor
 import re
+import threading
 
 # Pseudo-enum to track whether device defaults in place.
 (DEFAULTS_NONE, DEFAULTS_PENDING, DEFAULTS_SENT) = range(3)
@@ -400,7 +402,7 @@ class MicroscopeFilter(MicroscopeBase):
 
 
 
-class MicroscopeXYStage(MicroscopeBase, stage.StageDevice):
+class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
     """A class to control remote python microscope XYstage device.
 
     Sample config entry:
@@ -421,8 +423,8 @@ class MicroscopeXYStage(MicroscopeBase, stage.StageDevice):
             #this ought to be replaces with a AxisLimits named tuple,
             #but to get it workjing here I am fdoing this. IMD 20200420
             limits = self._proxy.limits()
-                self.softlimits=[[limits['x'].lower,limits['x'].upper],
-                                 [limits['y'].lower,limits['y'].upper]]
+            self.softlimits=[[limits['x'].lower,limits['x'].upper],
+                             [limits['y'].lower,limits['y'].upper]]
         except:
             print ("Microscope Stage no limits section setting default.")
             self.softlimits=[[-10000,-10000],[10000,10000]]
@@ -547,12 +549,4 @@ class MicroscopeXYStage(MicroscopeBase, stage.StageDevice):
         return(self._proxy.get_hard_limits())
 
 
-    class MicroscopeStage(MicroscopeBase):
-    """A python-microsocpe based stage.
-
-    Sample config entry:
-      [XYStage]
-      type: MicroscopeStage
-      uri: PYRO:XYStage@192.168.0.2:7001
-      ...
-    """
+ 
