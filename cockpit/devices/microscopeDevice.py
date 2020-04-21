@@ -59,6 +59,7 @@ import cockpit.util.threads
 from cockpit.gui.device import SettingsEditor
 import re
 import threading
+import time
 
 # Pseudo-enum to track whether device defaults in place.
 (DEFAULTS_NONE, DEFAULTS_PENDING, DEFAULTS_SENT) = range(3)
@@ -415,22 +416,8 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
     def __init__(self, *args, **kwargs):
         super(MicroscopeXYStage, self).__init__(*args, **kwargs)
         #XYstage class init functions
-        #Limits have to come from config as some stages
-        #eg PriorProScanIII can only find limits by moving to them
-        #and we dont want to do that every init.
-
-        try:
-            #this ought to be replaces with a AxisLimits named tuple,
-            #but to get it workjing here I am fdoing this. IMD 20200420
-            limits = self._proxy.limits()
-            self.softlimits=[[limits['x'].lower,limits['x'].upper],
-                             [limits['y'].lower,limits['y'].upper]]
-        except:
-            print ("Microscope Stage no limits section setting default.")
-            self.softlimits=[[-10000,-10000],[10000,10000]]
 
         self.xyLock = threading.Lock()
-        print (self.softlimits)
         ## Cached copy of the stage's position. Initialized to an impossible
         # value; this will be modified in initialize.
         self.xyPositionCache = (10 ** 100, 10 ** 100)
@@ -449,6 +436,22 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         events.subscribe('user abort', self.onAbort)
         
     def initialize(self):
+        #parent device connects to proxy. 
+        super().initialize()
+
+        try:
+            #Limits have to come from config as some stages
+            #eg PriorProScanIII can only find limits by moving to them
+            #and we dont want to do that every init.
+            #this ought to be replaces with a AxisLimits named tuple,
+            #but to get it workjing here I am fdoing this. IMD 20200420
+            limits = self._proxy.limits
+            self.softlimits=[[limits['x'].lower,limits['y'].lower],
+                             [limits['x'].upper,limits['y'].upper]]
+        except:
+            print ("Microscope Stage no limits section setting default.")
+            self.softlimits=[[-10000,-10000],[10000,10000]]
+
         # Get the proper initial position.
         self.getXYPosition(shouldUseCache = False)
 
@@ -458,7 +461,6 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         # stage movers get handlers here.
         result = []
         hardlimits=self.get_hard_limits()
-        print (hardlimits)
         for axis, minPos, maxPos in [(0, int(hardlimits[0][0]),
                                       int(hardlimits[1][0])),
                     (1, int(hardlimits[0][1]),
@@ -487,9 +489,8 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
 #        if not self.isMotionSafe(axis):
 #            self.xyMotionTargets[axis] = None
 #            raise RuntimeError("Moving axis %d to %s would pass through unsafe zone" % (axis, pos))
-        print (axis, self.axisMapper[axis])
-        self._proxy.move_to(self.axisMapper[axis],
-                             self.axisSignMapper[axis] * pos )
+        self._proxy.move_to({self.axisMapper[axis]:
+                             self.axisSignMapper[axis] * pos })
         self.sendXYPositionUpdates()
 
     def moveXYRelative(self, axis, delta):
@@ -498,13 +499,13 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
             return
         curPos = self.xyPositionCache[axis]
         self.xyMotionTargets[axis] = curPos+delta
-        self._proxy.move_to(self.axisMapper[axis],axisSignMapper[axis]*(curPos + delta))
+        self._proxy.move_to({self.axisMapper[axis]: axisSignMapper[axis]*(curPos + delta)})
         self.sendXYPositionUpdates()
         
 
     def getXYPosition(self, axis = None, shouldUseCache = True):
         if not shouldUseCache:
-            pos = self._proxy.position()
+            pos = self._proxy.position
             # Positions are in millimeters, and we need microns.
             x = float(pos[self.axisMapper[0]]) * self.axisSignMapper[0]
             y = float(pos[self.axisMapper[1]]) * self.axisSignMapper[1]
@@ -546,7 +547,9 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
             time.sleep(.01)
 
     def get_hard_limits(self):
-        return(self._proxy.get_hard_limits())
+        limits = self._proxy.limits
+        return([[limits['x'].lower,limits['y'].lower],
+                         [limits['x'].upper,limits['y'].upper]])
 
 
  
