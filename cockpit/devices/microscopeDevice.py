@@ -412,7 +412,7 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
       uri: PYRO:XYStage@192.168.0.2:7001
       ...
     """
-    
+
     def __init__(self, *args, **kwargs):
         super(MicroscopeXYStage, self).__init__(*args, **kwargs)
         #XYstage class init functions
@@ -421,7 +421,7 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         ## Cached copy of the stage's position. Initialized to an impossible
         # value; this will be modified in initialize.
         self.xyPositionCache = (10 ** 100, 10 ** 100)
-        ## Target positions for movement in X and Y, or None if that axis is 
+        ## Target positions for movement in X and Y, or None if that axis is
         # not moving.
         self.xyMotionTargets = [None, None]
 
@@ -434,9 +434,9 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         self.axisSignMapper = {0: -1, 1: 1}
         events.subscribe('program exit', self.onExit)
         events.subscribe('user abort', self.onAbort)
-        
+
     def initialize(self):
-        #parent device connects to proxy. 
+        #parent device connects to proxy.
         super().initialize()
 
         try:
@@ -479,7 +479,7 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
     #TODO needs to be implemented
     def setXYSafety(self):
         pass
-             
+
     def moveXYAbsolute(self,axis, pos):
         with self.xyLock:
             if self.xyMotionTargets[axis] is not None:
@@ -501,7 +501,7 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         self.xyMotionTargets[axis] = curPos+delta
         self._proxy.move_to({self.axisMapper[axis]: axisSignMapper[axis]*(curPos + delta)})
         self.sendXYPositionUpdates()
-        
+
 
     def getXYPosition(self, axis = None, shouldUseCache = True):
         if not shouldUseCache:
@@ -525,7 +525,7 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
 
     def get_status(self):
         return(self._proxy.get_status())
-        
+
     ## Send updates on the XY stage's position, until it stops moving.
     @cockpit.util.threads.callInNewThread
     def sendXYPositionUpdates(self):
@@ -550,6 +550,3 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         limits = self._proxy.limits
         return([[limits['x'].lower,limits['y'].lower],
                          [limits['x'].upper,limits['y'].upper]])
-
-
- 
