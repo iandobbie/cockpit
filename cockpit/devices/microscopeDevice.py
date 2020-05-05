@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ## Copyright (C) 2018 Mick Phillips <mick.phillips@gmail.com>
+## Copyright (C) 2020 David Miguel Susano Pinto <david.pinto@bioch.ox.ac.uk>
 ##
 ## This file is part of Cockpit.
 ##
@@ -42,12 +43,16 @@ For connection via a controller::
     uri: PYRO:SomeControler@host.port
 
 """
+
+import typing
+
 import Pyro4
 import wx
 from cockpit import events
 from cockpit.devices import device
 from cockpit.devices import stage
 from cockpit import depot
+import cockpit.devices.stage
 import cockpit.gui.device
 import cockpit.handlers.deviceHandler
 import cockpit.handlers.filterHandler
@@ -60,6 +65,8 @@ from cockpit.gui.device import SettingsEditor
 import re
 import threading
 import time
+
+from microscope.devices import AxisLimits
 
 # Pseudo-enum to track whether device defaults in place.
 (DEFAULTS_NONE, DEFAULTS_PENDING, DEFAULTS_SENT) = range(3)
@@ -402,9 +409,87 @@ class MicroscopeFilter(MicroscopeBase):
         return self.filters
 
 
+class MicroscopeStageAxis:
+    def __init__(self, axis:, index: int, primitives: typing.List[str]):
+        self._axis = axis # this will probably be a Pyro proxy
+        self._index = index
+        # FIXME: the primitives is actually a property of the stage
+        # but the way cockpit is designed this is read from a
+        # PositionerHandler which is a single axis.
+        self._primitives = primitives
 
-class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
-    """A class to control remote python microscope XYstage device.
+        # By default, soft limits are the hard limits
+        self._soft_limits = self._axis.limits
+
+    def getHandler(self, stage_name: str):
+        name = "%d %s" % (self._index, stage_name)
+        group_name = "%d stage motion" % self._index
+        eligible_for_experiments = False
+        callbacks = {
+            'getMovementTime' : self.getMovementTime,
+            'getPosition' : self.getPosition,
+            'getPrimitives' : self.getPrimitives,
+            'moveAbsolute' : self.moveAbsolute,
+            'moveRelative' : self.moveRelative,
+            'setSafety' : self.setSafety,
+        }
+        step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
+        step_index = 3
+
+        return cockpit.handlers.stagePositioner.PositionerHandler(name,
+                                                                  group_name,
+                                                                  eligible_for_experiments,
+                                                                  callbacks,
+                                                                  self._index,
+                                                                  step_sizes,
+                                                                  step_index,
+                                                                  self._axis.limits,
+                                                                  self._soft_limits)
+
+
+    #
+    # FIXME: we need some sort of factor to adjust from microscope
+    # unit to microns!!!!
+    #
+
+    def getMovementTime(self, axis: int, start: float, end: float):
+        pass
+
+    def getPosition(self, axis: int) -> float:
+        """Get the position for the specified axis."""
+        return self._axis.position
+
+    def getPrimitives(self) -> typing.List[str]:
+        return self._primitives
+
+    def moveAbsolute(self, axis: int, position: float) -> None:
+        """Move axis to the given position in microns."""
+        if self._soft_limits.lower < position < self._soft_limits.upper:
+            self._axis.move_to(position)
+        # TODO: are we supposed to publish events about the movement?
+        # Other devices seem to do it via the sendXYPositionUpdates.
+
+    def moveRelative(self, axis: int, delta: float) -> None:
+        """Move the axis by the specified delta, in microns."""
+        position = self._axis.position + delta
+        if self._soft_limits.lower < position < self._soft_limits.upper:
+            self._axis.move_by(delta)
+        # TODO: are we supposed to publish events about the movement?
+        # Other devices seem to do it via the sendXYPositionUpdates.
+
+    def setSafety(self, axis: int, value: float, isMax: bool):
+        """Set the min or max soft safety limit."""
+        # TODO: add some check that soft limits are not beyond the
+        # hard limits or somehow swapped.
+        if isMax:
+            self._soft_limits = AxisLimits(self._soft_limits.lower, value)
+        else:
+            self._soft_limits = AxisLimits(value, self._soft_limits.upper)
+
+
+
+class MicroscopeStage(cockpit.devices.stage.StageDevice, MicroscopeBase):
+    """A class to control remote python microscope.
 
     Sample config entry:
       [XYStage]
@@ -413,17 +498,22 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
       ...
     """
 
-    def __init__(self, *args, **kwargs):
-        super(MicroscopeXYStage, self).__init__(*args, **kwargs)
-        #XYstage class init functions
+    def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
+        super().__init__(name, config)
 
-        self.xyLock = threading.Lock()
+        # FIXME: we should not cache because stage might have moved without us
         ## Cached copy of the stage's position. Initialized to an impossible
         # value; this will be modified in initialize.
-        self.xyPositionCache = (10 ** 100, 10 ** 100)
+        #        self.xyPositionCache = (10 ** 100, 10 ** 100)
         ## Target positions for movement in X and Y, or None if that axis is
         # not moving.
-        self.xyMotionTargets = [None, None]
+        #        self.xyMotionTargets = [None, None]
+
+        self._axis_to_name = {} # type: typing.Dict[int, str]
+        for i, axis in enumerate('xyz'):
+            config_name = axis + '-axis-name'
+            if config_name in config:
+                self._axis_to_name[i] = config['config_name']
 
         ##followojng two need to come from config file
         ## Maps the cockpit's axis ordering (0: X, 1: Y, 2: Z) to the
@@ -432,13 +522,22 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         ## Maps cockpit axis ordering to a +-1 multiplier to apply to motion,
         # since some of our axes are flipped.
         self.axisSignMapper = {0: -1, 1: 1}
-        events.subscribe('program exit', self.onExit)
-        events.subscribe('user abort', self.onAbort)
 
     def initialize(self):
-        #parent device connects to proxy.
         super().initialize()
+        # Enabling the stage might cause it to move to home.
+        self._proxy.enable()
 
+        # check that all axis names are valid
+
+        # should we also be checking that we can control all axis and
+        # maybe raise a warning?
+
+        name_to_axis = {v:k for k,v in self._axis_to_name}
+
+        # By default, soft limits are the hard limits.
+        hard_limits = self._proxy.limits
+#        self._soft_limits = {i, hard_limits[n
         try:
             #Limits have to come from config as some stages
             #eg PriorProScanIII can only find limits by moving to them
@@ -457,28 +556,12 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
 
 
     def getHandlers(self):
-        # Note we leave control of the Z axis to the DSP; only the XY
-        # stage movers get handlers here.
-        result = []
-        hardlimits=self.get_hard_limits()
-        for axis, minPos, maxPos in [(0, int(hardlimits[0][0]),
-                                      int(hardlimits[1][0])),
-                    (1, int(hardlimits[0][1]),
-                     int(hardlimits[1][1]))]:
-            result.append(cockpit.handlers.stagePositioner.PositionerHandler(
-                    "%d %s" % (axis, self.name), "%d stage motion" % axis, False,
-                    {'moveAbsolute': self.moveXYAbsolute,
-                         'moveRelative': self.moveXYRelative,
-                         'getPosition': self.getXYPosition,
-                         'setSafety': self.setXYSafety,
-                         'getPrimitives': self.getPrimitives},
-                    axis, [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000], 3,
-                    (minPos,maxPos),(minPos,maxPos)))
-        return result
+        self._axes = [] # type: typing.List[MicroscopeStageAxis]
+        for index, axis_name in self._axis_to_name.items():
+            self._axes.append(MicroscopeStageAxis(self._proxy.axes[axis_name],
+                                                  index, self._primitives))
 
-    #TODO needs to be implemented
-    def setXYSafety(self):
-        pass
+        return [axis.getHandler(self.name) for axis in self._axes]
 
     def moveXYAbsolute(self,axis, pos):
         with self.xyLock:
@@ -513,40 +596,3 @@ class MicroscopeXYStage(MicroscopeBase, cockpit.devices.stage.StageDevice):
         if axis is None:
             return self.xyPositionCache
         return self.xyPositionCache[axis]
-
-    ## On exit, stop stage.
-    def onExit(self):
-        # Stop all motion
-        self.onAbort()
-
-    def onAbort(self):
-        # Stop all motion
-        self._proxy.stop()
-
-    def get_status(self):
-        return(self._proxy.get_status())
-
-    ## Send updates on the XY stage's position, until it stops moving.
-    @cockpit.util.threads.callInNewThread
-    def sendXYPositionUpdates(self):
-        while True:
-            prevX, prevY = self.xyPositionCache
-            x, y = self.getXYPosition(shouldUseCache = False)
-            delta = abs(x - prevX) + abs(y - prevY)
-            if delta < 5.:
-                # No movement since last time; done moving.
-                for axis in [0, 1]:
-                    events.publish('stage stopped', '%d %s' % (axis,self.name))
-                with self.xyLock:
-                    self.xyMotionTargets = [None, None]
-                return
-            for axis, val in enumerate([x, y]):
-                events.publish('stage mover', '%d %s' % (axis, self.name), axis,
-                        self.axisSignMapper[axis] * val)
-            curPosition = (x, y)
-            time.sleep(.01)
-
-    def get_hard_limits(self):
-        limits = self._proxy.limits
-        return([[limits['x'].lower,limits['y'].lower],
-                         [limits['x'].upper,limits['y'].upper]])
