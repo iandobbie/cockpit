@@ -495,19 +495,16 @@ class MicroscopeStage(cockpit.devices.stage.StageDevice, MicroscopeBase):
       [XYStage]
       type: MicroscopeXYStage
       uri: PYRO:XYStage@192.168.0.2:7001
-      ...
+      x-axis-name: X
+      y-axis-name: Y
     """
 
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
         super().__init__(name, config)
 
-        # FIXME: we should not cache because stage might have moved without us
-        ## Cached copy of the stage's position. Initialized to an impossible
-        # value; this will be modified in initialize.
-        #        self.xyPositionCache = (10 ** 100, 10 ** 100)
-        ## Target positions for movement in X and Y, or None if that axis is
-        # not moving.
-        #        self.xyMotionTargets = [None, None]
+        # TODO: some stage devices cache the stage position.  However,
+        # they might have moved without us so maybe a cache value is
+        # not a good idea.
 
         self._axis_to_name = {} # type: typing.Dict[int, str]
         for i, axis in enumerate('xyz'):
@@ -525,13 +522,15 @@ class MicroscopeStage(cockpit.devices.stage.StageDevice, MicroscopeBase):
 
     def initialize(self):
         super().initialize()
-        # Enabling the stage might cause it to move to home.
+        # Enabling the stage might cause it to move to home.  If it
+        # has been enabled before, it might do nothing.  We have no
+        # way to know until we try it.
         self._proxy.enable()
 
-        # check that all axis names are valid
+        # TODO: check that all axis names are valid?
 
-        # should we also be checking that we can control all axis and
-        # maybe raise a warning?
+        # TODO: should we also be checking that we can control all
+        # axis and maybe raise a warning?
 
         name_to_axis = {v:k for k,v in self._axis_to_name}
 
