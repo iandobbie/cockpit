@@ -61,10 +61,10 @@ import cockpit.util.colors
 import cockpit.util.userConfig
 import cockpit.util.threads
 from cockpit.gui.device import SettingsEditor
+from cockpit.handlers.stagePositioner import PositionerHandler
 import re
 import threading
 import time
-
 from microscope.devices import AxisLimits
 
 # Pseudo-enum to track whether device defaults in place.
@@ -408,14 +408,11 @@ class MicroscopeFilter(MicroscopeBase):
         return self.filters
 
 
-class MicroscopeStageAxis:
-    def __init__(self, axis:, index: int, primitives: typing.List[str]):
+class _MicroscopeStageAxis:
+    """Wrap a Python microscope StageAxis for a cockpit PositionerHandler."""
+    def __init__(self, axis:, index: int):
         self._axis = axis # this will probably be a Pyro proxy
         self._index = index
-        # FIXME: the primitives is actually a property of the stage
-        # but the way cockpit is designed this is read from a
-        # PositionerHandler which is a single axis.
-        self._primitives = primitives
 
         # By default, soft limits are the hard limits
         self._soft_limits = self._axis.limits
@@ -427,7 +424,6 @@ class MicroscopeStageAxis:
         callbacks = {
             'getMovementTime' : self.getMovementTime,
             'getPosition' : self.getPosition,
-            'getPrimitives' : self.getPrimitives,
             'moveAbsolute' : self.moveAbsolute,
             'moveRelative' : self.moveRelative,
             'setSafety' : self.setSafety,
@@ -435,15 +431,9 @@ class MicroscopeStageAxis:
         step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
         step_index = 3
 
-        return cockpit.handlers.stagePositioner.PositionerHandler(name,
-                                                                  group_name,
-                                                                  eligible_for_experiments,
-                                                                  callbacks,
-                                                                  self._index,
-                                                                  step_sizes,
-                                                                  step_index,
-                                                                  self._axis.limits,
-                                                                  self._soft_limits)
+        return PositionerHandler(name, group_name, eligible_for_experiments,
+                                 callbacks, self._index, step_sizes, step_index,
+                                 self._axis.limits, self._soft_limits)
 
 
     #
@@ -457,9 +447,6 @@ class MicroscopeStageAxis:
     def getPosition(self, axis: int) -> float:
         """Get the position for the specified axis."""
         return self._axis.position
-
-    def getPrimitives(self) -> typing.List[str]:
-        return self._primitives
 
     def moveAbsolute(self, axis: int, position: float) -> None:
         """Move axis to the given position in microns."""
@@ -488,7 +475,7 @@ class MicroscopeStageAxis:
 
 
 class MicroscopeStage(MicroscopeBase):
-    """De
+    """Device class for a Python microscope StageDevice.
 
     Sample config entry:
 
@@ -550,48 +537,12 @@ class MicroscopeStage(MicroscopeBase):
             print ("Microscope Stage no limits section setting default.")
             self.softlimits=[[-10000,-10000],[10000,10000]]
 
-        # Get the proper initial position.
-        self.getXYPosition(shouldUseCache = False)
-
 
     def getHandlers(self):
+        # Override MicroscopeBase.getHandlers and do not call super.
         self._axes = [] # type: typing.List[MicroscopeStageAxis]
         for index, axis_name in self._axis_to_name.items():
             self._axes.append(MicroscopeStageAxis(self._proxy.axes[axis_name],
-                                                  index, self._primitives))
+                                                  index))
 
         return [axis.getHandler(self.name) for axis in self._axes]
-
-#     def moveXYAbsolute(self,axis, pos):
-#         with self.xyLock:
-#             if self.xyMotionTargets[axis] is not None:
-#                 # Don't stack motion commands for the same axis
-#                 return
-#         self.xyMotionTargets[axis] = pos
-# #        if not self.isMotionSafe(axis):
-# #            self.xyMotionTargets[axis] = None
-# #            raise RuntimeError("Moving axis %d to %s would pass through unsafe zone" % (axis, pos))
-#         self._proxy.move_to({self.axisMapper[axis]:
-#                              self.axisSignMapper[axis] * pos })
-#         self.sendXYPositionUpdates()
-
-#     def moveXYRelative(self, axis, delta):
-#         if not delta:
-#             # Received a bogus motion request.
-#             return
-#         curPos = self.xyPositionCache[axis]
-#         self.xyMotionTargets[axis] = curPos+delta
-#         self._proxy.move_to({self.axisMapper[axis]: axisSignMapper[axis]*(curPos + delta)})
-#         self.sendXYPositionUpdates()
-
-
-#     def getXYPosition(self, axis = None, shouldUseCache = True):
-#         if not shouldUseCache:
-#             pos = self._proxy.position
-#             # Positions are in millimeters, and we need microns.
-#             x = float(pos[self.axisMapper[0]]) * self.axisSignMapper[0]
-#             y = float(pos[self.axisMapper[1]]) * self.axisSignMapper[1]
-#             self.xyPositionCache = (x, y)
-#         if axis is None:
-#             return self.xyPositionCache
-#         return self.xyPositionCache[axis]
