@@ -52,7 +52,6 @@ from cockpit import events
 from cockpit.devices import device
 from cockpit.devices import stage
 from cockpit import depot
-import cockpit.devices.stage
 import cockpit.gui.device
 import cockpit.handlers.deviceHandler
 import cockpit.handlers.filterHandler
@@ -488,12 +487,13 @@ class MicroscopeStageAxis:
 
 
 
-class MicroscopeStage(cockpit.devices.stage.StageDevice, MicroscopeBase):
-    """A class to control remote python microscope.
+class MicroscopeStage(MicroscopeBase):
+    """De
 
     Sample config entry:
+
       [XYStage]
-      type: MicroscopeXYStage
+      type: MicroscopeStage
       uri: PYRO:XYStage@192.168.0.2:7001
       x-axis-name: X
       y-axis-name: Y
@@ -562,36 +562,36 @@ class MicroscopeStage(cockpit.devices.stage.StageDevice, MicroscopeBase):
 
         return [axis.getHandler(self.name) for axis in self._axes]
 
-    def moveXYAbsolute(self,axis, pos):
-        with self.xyLock:
-            if self.xyMotionTargets[axis] is not None:
-                # Don't stack motion commands for the same axis
-                return
-        self.xyMotionTargets[axis] = pos
-#        if not self.isMotionSafe(axis):
-#            self.xyMotionTargets[axis] = None
-#            raise RuntimeError("Moving axis %d to %s would pass through unsafe zone" % (axis, pos))
-        self._proxy.move_to({self.axisMapper[axis]:
-                             self.axisSignMapper[axis] * pos })
-        self.sendXYPositionUpdates()
+#     def moveXYAbsolute(self,axis, pos):
+#         with self.xyLock:
+#             if self.xyMotionTargets[axis] is not None:
+#                 # Don't stack motion commands for the same axis
+#                 return
+#         self.xyMotionTargets[axis] = pos
+# #        if not self.isMotionSafe(axis):
+# #            self.xyMotionTargets[axis] = None
+# #            raise RuntimeError("Moving axis %d to %s would pass through unsafe zone" % (axis, pos))
+#         self._proxy.move_to({self.axisMapper[axis]:
+#                              self.axisSignMapper[axis] * pos })
+#         self.sendXYPositionUpdates()
 
-    def moveXYRelative(self, axis, delta):
-        if not delta:
-            # Received a bogus motion request.
-            return
-        curPos = self.xyPositionCache[axis]
-        self.xyMotionTargets[axis] = curPos+delta
-        self._proxy.move_to({self.axisMapper[axis]: axisSignMapper[axis]*(curPos + delta)})
-        self.sendXYPositionUpdates()
+#     def moveXYRelative(self, axis, delta):
+#         if not delta:
+#             # Received a bogus motion request.
+#             return
+#         curPos = self.xyPositionCache[axis]
+#         self.xyMotionTargets[axis] = curPos+delta
+#         self._proxy.move_to({self.axisMapper[axis]: axisSignMapper[axis]*(curPos + delta)})
+#         self.sendXYPositionUpdates()
 
 
-    def getXYPosition(self, axis = None, shouldUseCache = True):
-        if not shouldUseCache:
-            pos = self._proxy.position
-            # Positions are in millimeters, and we need microns.
-            x = float(pos[self.axisMapper[0]]) * self.axisSignMapper[0]
-            y = float(pos[self.axisMapper[1]]) * self.axisSignMapper[1]
-            self.xyPositionCache = (x, y)
-        if axis is None:
-            return self.xyPositionCache
-        return self.xyPositionCache[axis]
+#     def getXYPosition(self, axis = None, shouldUseCache = True):
+#         if not shouldUseCache:
+#             pos = self._proxy.position
+#             # Positions are in millimeters, and we need microns.
+#             x = float(pos[self.axisMapper[0]]) * self.axisSignMapper[0]
+#             y = float(pos[self.axisMapper[1]]) * self.axisSignMapper[1]
+#             self.xyPositionCache = (x, y)
+#         if axis is None:
+#             return self.xyPositionCache
+#         return self.xyPositionCache[axis]
