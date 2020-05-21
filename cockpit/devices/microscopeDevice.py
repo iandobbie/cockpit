@@ -62,9 +62,8 @@ import cockpit.util.userConfig
 import cockpit.util.threads
 from cockpit.gui.device import SettingsEditor
 from cockpit.handlers.stagePositioner import PositionerHandler
+from cockpit.interfaces import stageMover
 import re
-import threading
-import time
 from microscope.devices import AxisLimits
 
 # Pseudo-enum to track whether device defaults in place.
@@ -410,14 +409,13 @@ class MicroscopeFilter(MicroscopeBase):
 
 class _MicroscopeStageAxis:
     """Wrap a Python microscope StageAxis for a cockpit PositionerHandler."""
-    def __init__(self, axis:, index: int):
-        self._axis = axis # this will probably be a Pyro proxy
+    def __init__(self, axis, index: int, stage_name: str) -> None:
+        self._axis = axis # StageAxis instance or a Pyro4 proxy for one
         self._index = index
 
         # By default, soft limits are the hard limits
         self._soft_limits = self._axis.limits
 
-    def getHandler(self, stage_name: str):
         name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
         eligible_for_experiments = False
@@ -427,51 +425,66 @@ class _MicroscopeStageAxis:
             'moveAbsolute' : self.moveAbsolute,
             'moveRelative' : self.moveRelative,
             'setSafety' : self.setSafety,
+            # TODO: add a a cleanupAfterExperiment if we make it
+            # eligible for experiments.
         }
         step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
         step_index = 3
 
-        return PositionerHandler(name, group_name, eligible_for_experiments,
-                                 callbacks, self._index, step_sizes, step_index,
-                                 self._axis.limits, self._soft_limits)
+        self._handler = PositionerHandler(name, group_name,
+                                          eligible_for_experiments,
+                                          callbacks, self._index, step_sizes,
+                                          step_index, self._axis.limits,
+                                          self._soft_limits)
 
+    def getHandler(self, stage_name: str) -> PositionerHandler:
+        return self._handler
 
     #
     # FIXME: we need some sort of factor to adjust from microscope
     # unit to microns!!!!
     #
 
-    def getMovementTime(self, axis: int, start: float, end: float):
-        pass
+    def getMovementTime(self, index: int, start: float, end: float):
+        if index != self._index:
+            raise RuntimeError()
+        raise NotImplementedError()
 
-    def getPosition(self, axis: int) -> float:
+    def getPosition(self, index: int) -> float:
         """Get the position for the specified axis."""
+        if index != self._index:
+            raise RuntimeError()
         return self._axis.position
 
-    def moveAbsolute(self, axis: int, position: float) -> None:
+    def moveAbsolute(self, index: int, position: float) -> None:
         """Move axis to the given position in microns."""
+        if index != self._index:
+            raise RuntimeError()
         if self._soft_limits.lower < position < self._soft_limits.upper:
             self._axis.move_to(position)
-        # TODO: are we supposed to publish events about the movement?
-        # Other devices seem to do it via the sendXYPositionUpdates.
+        else:
+            raise RuntimeError('not sure what to do when outside soft limits')
 
-    def moveRelative(self, axis: int, delta: float) -> None:
+    def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
+        if index != self._index:
+            raise RuntimeError()
         position = self._axis.position + delta
         if self._soft_limits.lower < position < self._soft_limits.upper:
             self._axis.move_by(delta)
-        # TODO: are we supposed to publish events about the movement?
-        # Other devices seem to do it via the sendXYPositionUpdates.
+        else:
+            raise RuntimeError('not sure what to do when outside soft limits')
 
-    def setSafety(self, axis: int, value: float, isMax: bool):
+    def setSafety(self, index: int, value: float, isMax: bool):
         """Set the min or max soft safety limit."""
+        if index != self._index:
+            raise RuntimeError()
         # TODO: add some check that soft limits are not beyond the
         # hard limits or somehow swapped.
         if isMax:
             self._soft_limits = AxisLimits(self._soft_limits.lower, value)
         else:
             self._soft_limits = AxisLimits(value, self._soft_limits.upper)
-
 
 
 class MicroscopeStage(MicroscopeBase):
@@ -488,61 +501,44 @@ class MicroscopeStage(MicroscopeBase):
 
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
         super().__init__(name, config)
+        self._axes = [] # type: typing.List[_MicroscopeStageAxis]
 
-        # TODO: some stage devices cache the stage position.  However,
+        # XXX: some stage devices cache the stage position.  However,
         # they might have moved without us so maybe a cache value is
         # not a good idea.
 
-        self._axis_to_name = {} # type: typing.Dict[int, str]
-        for i, axis in enumerate('xyz'):
-            config_name = axis + '-axis-name'
+        ## TODO: too many mapping back and forth!!!
+
+        index_to_name = {} # type: typing.Dict[int, str]
+        for name in 'xyz':
+            config_name = name + '-axis-name'
             if config_name in config:
-                self._axis_to_name[i] = config['config_name']
+                axis_index = stageMover.AXIS_MAP[name]
+                self._axis_to_name[axis_index] = config[config_name]
 
-        ##followojng two need to come from config file
-        ## Maps the cockpit's axis ordering (0: X, 1: Y, 2: Z) to the
-        # XY stage's ordering (1: Y, 0: X)
-        self.axisMapper = {0: 'x', 1: 'y'}
-        ## Maps cockpit axis ordering to a +-1 multiplier to apply to motion,
-        # since some of our axes are flipped.
-        self.axisSignMapper = {0: -1, 1: 1}
+        their_axes_map = self._proxy.axes
+        for our_axis_name in index_to_name.values():
+            if our_axis_name not in their_axes_map:
+                raise Exception('invalid axis named \'%s\''
+                                % our_axis_name)
 
-    def initialize(self):
+        # FIXME: maybe this should be a warning instead?
+        for their_axis_name in their_axes_map.keys():
+            if their_axis_name not in index_to_name.keys():
+                raise Exception('No configuration for the axis named \'%s\''
+                                % their_axis_name)
+
+        for index, axis_name in index_to_name.items():
+            self._axes.append(_MicroscopeStageAxis(their_axes_map[axis_name],
+                                                   index, self.name))
+
+    def initialize(self) -> None:
         super().initialize()
         # Enabling the stage might cause it to move to home.  If it
         # has been enabled before, it might do nothing.  We have no
         # way to know until we try it.
         self._proxy.enable()
 
-        # TODO: check that all axis names are valid?
-
-        # TODO: should we also be checking that we can control all
-        # axis and maybe raise a warning?
-
-        name_to_axis = {v:k for k,v in self._axis_to_name}
-
-        # By default, soft limits are the hard limits.
-        hard_limits = self._proxy.limits
-#        self._soft_limits = {i, hard_limits[n
-        try:
-            #Limits have to come from config as some stages
-            #eg PriorProScanIII can only find limits by moving to them
-            #and we dont want to do that every init.
-            #this ought to be replaces with a AxisLimits named tuple,
-            #but to get it workjing here I am fdoing this. IMD 20200420
-            limits = self._proxy.limits
-            self.softlimits=[[limits['x'].lower,limits['y'].lower],
-                             [limits['x'].upper,limits['y'].upper]]
-        except:
-            print ("Microscope Stage no limits section setting default.")
-            self.softlimits=[[-10000,-10000],[10000,10000]]
-
-
-    def getHandlers(self):
-        # Override MicroscopeBase.getHandlers and do not call super.
-        self._axes = [] # type: typing.List[MicroscopeStageAxis]
-        for index, axis_name in self._axis_to_name.items():
-            self._axes.append(MicroscopeStageAxis(self._proxy.axes[axis_name],
-                                                  index))
-
-        return [axis.getHandler(self.name) for axis in self._axes]
+    def getHandlers(self) -> typing.List[PositionerHandler]:
+        # Override MicroscopeBase.getHandlers.  Do not call super.
+        return [x.getHandler() for x in self._axes]
