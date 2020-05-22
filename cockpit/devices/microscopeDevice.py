@@ -412,11 +412,11 @@ class _MicroscopeStageAxis:
     def __init__(self, axis, index: int, stage_name: str) -> None:
         self._axis = axis # StageAxis instance or a Pyro4 proxy for one
         self._index = index
+        self._name = "%d %s" % (self._index, stage_name)
 
         # By default, soft limits are the hard limits
         self._soft_limits = self._axis.limits
 
-        name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
         eligible_for_experiments = False
         callbacks = {
@@ -431,54 +431,54 @@ class _MicroscopeStageAxis:
         step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
         step_index = 3
 
-        self._handler = PositionerHandler(name, group_name,
+        self._handler = PositionerHandler(self._name, group_name,
                                           eligible_for_experiments,
                                           callbacks, self._index, step_sizes,
                                           step_index, self._axis.limits,
                                           self._soft_limits)
 
-    def getHandler(self, stage_name: str) -> PositionerHandler:
+    def getHandler(self) -> PositionerHandler:
         return self._handler
 
+    def publishMove(self) -> None:
+        events.publish(events.STAGE_MOVER, self._name, self._index,
+                       self.getPosition(self._index))
     #
     # FIXME: we need some sort of factor to adjust from microscope
     # unit to microns!!!!
     #
 
     def getMovementTime(self, index: int, start: float, end: float):
-        if index != self._index:
-            raise RuntimeError()
+        assert index == self._index
         raise NotImplementedError()
 
     def getPosition(self, index: int) -> float:
         """Get the position for the specified axis."""
-        if index != self._index:
-            raise RuntimeError()
+        assert index == self._index
         return self._axis.position
 
     def moveAbsolute(self, index: int, position: float) -> None:
         """Move axis to the given position in microns."""
-        if index != self._index:
-            raise RuntimeError()
+        assert index == self._index
         if self._soft_limits.lower < position < self._soft_limits.upper:
             self._axis.move_to(position)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
+        self.publishMove()
 
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
-        if index != self._index:
-            raise RuntimeError()
+        assert index == self._index
         position = self._axis.position + delta
         if self._soft_limits.lower < position < self._soft_limits.upper:
             self._axis.move_by(delta)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
+        self.publishMove()
 
     def setSafety(self, index: int, value: float, isMax: bool):
         """Set the min or max soft safety limit."""
-        if index != self._index:
-            raise RuntimeError()
+        assert index == self._index
         # TODO: add some check that soft limits are not beyond the
         # hard limits or somehow swapped.
         if isMax:
@@ -503,44 +503,37 @@ class MicroscopeStage(MicroscopeBase):
         super().__init__(name, config)
         self._axes = [] # type: typing.List[_MicroscopeStageAxis]
 
-        # XXX: some stage devices cache the stage position.  However,
-        # they might have moved without us so maybe a cache value is
-        # not a good idea.
-
-        ## TODO: too many mapping back and forth!!!
-index -> axis
-axis - cockpit_axis_index
-
-        index_to_name = {} # type: typing.Dict[int, str]
-        for name in 'xyz':
-            config_name = name + '-axis-name'
-            if config_name in config:
-                axis_index = stageMover.AXIS_MAP[name]
-                self._axis_to_name[axis_index] = config[config_name]
-
-        their_axes_map = self._proxy.axes
-        for our_axis_name in index_to_name.values():
-            if our_axis_name not in their_axes_map:
-                raise Exception('invalid axis named \'%s\''
-                                % our_axis_name)
-
-        # FIXME: maybe this should be a warning instead?
-        for their_axis_name in their_axes_map.keys():
-            if their_axis_name not in index_to_name.keys():
-                raise Exception('No configuration for the axis named \'%s\''
-                                % their_axis_name)
-
-        for index, axis_name in index_to_name.items():
-            self._axes.append(_MicroscopeStageAxis(their_axes_map[axis_name],
-                                                   index, self.name))
-
 
     def initialize(self) -> None:
         super().initialize()
+
+        their_axes_map = self._proxy.axes
+        handled_axes_name = set()
+        for config_name in ['x-axis-name', 'y-axis-name', 'z-axis-name']:
+            if config_name not in self.config:
+                continue
+
+            their_name = self.config[config_name]
+            if their_name not in their_axes_map:
+                raise RuntimeError('unknown axis named \'%s\'' % their_name)
+            their_axis = their_axes_map[their_name]
+            handled_axes_name.add(their_name)
+
+            cockpit_index = stageMover.AXIS_MAP[config_name[0]]
+            self._axes.append(_MicroscopeStageAxis(their_axis, cockpit_index,
+                                                   self.name))
+
+        for their_axis_name in their_axes_map.keys():
+            if their_axis_name not in handled_axes_name:
+                # FIXME: maybe this should be a warning instead?
+                raise Exception('No configuration for the axis named \'%s\''
+                                % their_axis_name)
+
         # Enabling the stage might cause it to move to home.  If it
         # has been enabled before, it might do nothing.  We have no
         # way to know until we try it.
         self._proxy.enable()
+
 
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
