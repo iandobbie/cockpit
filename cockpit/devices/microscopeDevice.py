@@ -508,6 +508,8 @@ class MicroscopeStage(MicroscopeBase):
         # not a good idea.
 
         ## TODO: too many mapping back and forth!!!
+index -> axis
+axis - cockpit_axis_index
 
         index_to_name = {} # type: typing.Dict[int, str]
         for name in 'xyz':
@@ -531,6 +533,7 @@ class MicroscopeStage(MicroscopeBase):
         for index, axis_name in index_to_name.items():
             self._axes.append(_MicroscopeStageAxis(their_axes_map[axis_name],
                                                    index, self.name))
+
 
     def initialize(self) -> None:
         super().initialize()
