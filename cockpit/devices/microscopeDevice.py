@@ -442,9 +442,6 @@ class _MicroscopeStageAxis:
     def getHandler(self) -> PositionerHandler:
         return self._handler
 
-    def publishMove(self) -> None:
-        events.publish(events.STAGE_MOVER, self._name, self._index,
-                       self.getPosition(self._index))
     #
     # FIXME: we need some sort of factor to adjust from microscope
     # unit to microns!!!!
@@ -466,7 +463,7 @@ class _MicroscopeStageAxis:
             self._axis.move_to(position)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
-        self.publishMove()
+        events.publish(events.STAGE_MOVER, self._index)
 
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
@@ -476,7 +473,7 @@ class _MicroscopeStageAxis:
             self._axis.move_by(delta)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
-        self.publishMove()
+        events.publish(events.STAGE_MOVER, self._index)
 
     def setSafety(self, index: int, value: float, isMax: bool):
         """Set the min or max soft safety limit."""
