@@ -425,10 +425,10 @@ class _MicroscopeStageAxis:
         self._index = index
         self._units_per_um = units_per_um
 
-        # By default, our (soft) limits are the hard limits
+        # By default, soft limits are the hard limits
         hard_limits = AxisLimits(self._axis.limits.lower / self._units_per_um,
                                  self._axis.limits.upper / self._units_per_um)
-        self._limits = hard_limits
+        soft_limits = hard_limits
 
         name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
@@ -446,15 +446,14 @@ class _MicroscopeStageAxis:
         step_index = 3
 
         self._handler = PositionerHandler(name, group_name,
-                                          eligible_for_experiments,
-                                          callbacks, self._index, step_sizes,
-                                          step_index, hard_limits,
-                                          self._limits)
+                                          eligible_for_experiments, callbacks,
+                                          self._index, step_sizes, step_index,
+                                          hard_limits, soft_limits)
 
     def getHandler(self) -> PositionerHandler:
         return self._handler
 
-    def getMovementTime(self, index: int, start: float, end: float):
+    def getMovementTime(self, index: int, start: float, end: float) -> float:
         assert index == self._index
         raise NotImplementedError()
 
@@ -476,15 +475,8 @@ class _MicroscopeStageAxis:
         events.publish(events.STAGE_MOVER, self._index)
 
     def setSafety(self, index: int, value: float, isMax: bool) -> None:
-        """Set the min or max soft limit."""
-        assert index == self._index
-        # TODO: add some check that soft limits are not beyond the
-        # hard limits or somehow swapped.
-        # FIXME: this methods is pointless.  
-        if isMax:
-            self._limits = AxisLimits(self._limits.lower, value)
-        else:
-            self._limits = AxisLimits(value, self._limits.upper)
+        """Do nothing, this is handled by the handler."""
+        pass
 
 
 class MicroscopeStage(MicroscopeBase):
