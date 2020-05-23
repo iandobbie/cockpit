@@ -408,17 +408,27 @@ class MicroscopeFilter(MicroscopeBase):
 
 
 class _MicroscopeStageAxis:
-    """Wrap a Python microscope StageAxis for a cockpit PositionerHandler."""
-    def __init__(self, axis, factor: float, index: int,
+    """Wrap a Python microscope StageAxis for a cockpit PositionerHandler.
+
+    Args:
+        axis: an instance of `microscope.devices.StageAxis`.
+        index: the cockpit axis index value for this axis (0 for X, 1
+            for Y, or 2 for Z).
+        units_per_um: the number of units, or steps, used by the
+            device per µm.
+    """
+    def __init__(self, axis, index: int, units_per_um: float,
                  stage_name: str) -> None:
-        self._axis = axis # StageAxis instance or a Pyro4 proxy for one
-        self._factor = factor
+        self._axis = axis
         self._index = index
-        self._name = "%d %s" % (self._index, stage_name)
+        self._units_per_um = units_per_um
 
         # By default, soft limits are the hard limits
-        self._soft_limits = self._axis.limits
+        hard_limits = AxisLimits(self._axis.limits.lower / self._units_per_um,
+                                 self._axis.limits.upper / self._units_per_um)
+        self._soft_limits = hard_limits
 
+        name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
         eligible_for_experiments = False
         callbacks = {
@@ -433,19 +443,14 @@ class _MicroscopeStageAxis:
         step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
         step_index = 3
 
-        self._handler = PositionerHandler(self._name, group_name,
+        self._handler = PositionerHandler(name, group_name,
                                           eligible_for_experiments,
                                           callbacks, self._index, step_sizes,
-                                          step_index, self._axis.limits,
+                                          step_index, hard_limits,
                                           self._soft_limits)
 
     def getHandler(self) -> PositionerHandler:
         return self._handler
-
-    #
-    # FIXME: we need some sort of factor to adjust from microscope
-    # unit to microns!!!!
-    #
 
     def getMovementTime(self, index: int, start: float, end: float):
         assert index == self._index
@@ -454,13 +459,13 @@ class _MicroscopeStageAxis:
     def getPosition(self, index: int) -> float:
         """Get the position for the specified axis."""
         assert index == self._index
-        return self._axis.position
+        return self._axis.position / self._units_per_um
 
     def moveAbsolute(self, index: int, position: float) -> None:
         """Move axis to the given position in microns."""
         assert index == self._index
         if self._soft_limits.lower < position < self._soft_limits.upper:
-            self._axis.move_to(position)
+            self._axis.move_to(position * self._units_per_um)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
         events.publish(events.STAGE_MOVER, self._index)
@@ -468,9 +473,9 @@ class _MicroscopeStageAxis:
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
         assert index == self._index
-        position = self._axis.position + delta
+        position = self.getPosition() + delta
         if self._soft_limits.lower < position < self._soft_limits.upper:
-            self._axis.move_by(delta)
+            self._axis.move_by(delta * self._units_per_um)
         else:
             raise RuntimeError('not sure what to do when outside soft limits')
         events.publish(events.STAGE_MOVER, self._index)
@@ -489,13 +494,28 @@ class _MicroscopeStageAxis:
 class MicroscopeStage(MicroscopeBase):
     """Device class for a Python microscope StageDevice.
 
-    Sample config entry:
+    This device requires two configurations per axis:
+
+    1. The ``axis-name`` configuration specifies the name of the axis
+       on Python microscope ``StageDevice``.  Usually, this is
+       something like ``X`` or ``Y`` but can be anything.  Refer to
+       the device documentation.
+
+    2. The ``units-per-µm`` number of units, or steps, used by the
+       device in a µm.  This value is used to convert between the
+       device units into physical units.
+
+    For example, a remote XY stage, where each device step corresponds
+    to 0.1µm, would have a configuration entry like::
 
       [XYStage]
-      type: MicroscopeStage
-      uri: PYRO:XYStage@192.168.0.2:7001
+      type: cockpit.devices.microscopeDevice.MicroscopeStage
+      uri: PYRO:SomeStage@192.168.0.2:7001
       x-axis-name: X
       y-axis-name: Y
+      x-units-per-µm: 100
+      x-units-per-µm: 100
+
     """
 
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
@@ -514,22 +534,25 @@ class MicroscopeStage(MicroscopeBase):
                 # This stage does not have this axis.
                 continue
 
-            their_name = self.config[config_name]
+            their_name = self.config[axis_config_name]
             if their_name not in their_axes_map:
                 raise RuntimeError('unknown axis named \'%s\'' % their_name)
 
-            factor_config_name = one_letter_name + '-axis-factor'
-            if factor_config_name not in self.config:
-                raise Exception('No factor config value for \'%s\' axis'
-                                % one_letter_name)
-            factor = float(self.config[factor_config_name])
+            units_config_name = one_letter_name + '-units-per-µm'
+            if units_config_name not in self.config:
+                raise Exception('Missing \'%s\' value in the configuration'
+                                % units_config_name)
+            units_per_um = float(self.config[units_config_name])
+            if units_per_um <= 0.0:
+                raise ValueError('\'%s\' configuration must be a positive value'
+                                 % units_config_name)
 
             their_axis = their_axes_map[their_name]
             handled_axes_name.add(their_name)
 
-            cockpit_index = stageMover.AXIS_MAP[config_name[0]]
+            cockpit_index = stageMover.AXIS_MAP[one_letter_name]
             self._axes.append(_MicroscopeStageAxis(their_axis, cockpit_index,
-                                                   self.name))
+                                                   units_per_um, self.name))
 
         for their_axis_name in their_axes_map.keys():
             if their_axis_name not in handled_axes_name:
