@@ -409,8 +409,10 @@ class MicroscopeFilter(MicroscopeBase):
 
 class _MicroscopeStageAxis:
     """Wrap a Python microscope StageAxis for a cockpit PositionerHandler."""
-    def __init__(self, axis, index: int, stage_name: str) -> None:
+    def __init__(self, axis, factor: float, index: int,
+                 stage_name: str) -> None:
         self._axis = axis # StageAxis instance or a Pyro4 proxy for one
+        self._factor = factor
         self._index = index
         self._name = "%d %s" % (self._index, stage_name)
 
@@ -509,13 +511,22 @@ class MicroscopeStage(MicroscopeBase):
 
         their_axes_map = self._proxy.axes
         handled_axes_name = set()
-        for config_name in ['x-axis-name', 'y-axis-name', 'z-axis-name']:
-            if config_name not in self.config:
+        for one_letter_name in 'xyz':
+            axis_config_name = one_letter_name + '-axis-name'
+            if axis_config_name not in self.config:
+                # This stage does not have this axis.
                 continue
 
             their_name = self.config[config_name]
             if their_name not in their_axes_map:
                 raise RuntimeError('unknown axis named \'%s\'' % their_name)
+
+            factor_config_name = one_letter_name + '-axis-factor'
+            if factor_config_name not in self.config:
+                raise Exception('No factor config value for \'%s\' axis'
+                                % one_letter_name)
+            factor = float(self.config[factor_config_name])
+
             their_axis = their_axes_map[their_name]
             handled_axes_name.add(their_name)
 
