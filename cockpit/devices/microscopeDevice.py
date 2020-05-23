@@ -416,6 +416,8 @@ class _MicroscopeStageAxis:
             for Y, or 2 for Z).
         units_per_um: the number of units, or steps, used by the
             device per µm.
+        stage_name: the name of the stage device, used to construct
+            the handler name.
     """
     def __init__(self, axis, index: int, units_per_um: float,
                  stage_name: str) -> None:
@@ -423,10 +425,10 @@ class _MicroscopeStageAxis:
         self._index = index
         self._units_per_um = units_per_um
 
-        # By default, soft limits are the hard limits
+        # By default, our (soft) limits are the hard limits
         hard_limits = AxisLimits(self._axis.limits.lower / self._units_per_um,
                                  self._axis.limits.upper / self._units_per_um)
-        self._soft_limits = hard_limits
+        self._limits = hard_limits
 
         name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
@@ -447,7 +449,7 @@ class _MicroscopeStageAxis:
                                           eligible_for_experiments,
                                           callbacks, self._index, step_sizes,
                                           step_index, hard_limits,
-                                          self._soft_limits)
+                                          self._limits)
 
     def getHandler(self) -> PositionerHandler:
         return self._handler
@@ -464,31 +466,31 @@ class _MicroscopeStageAxis:
     def moveAbsolute(self, index: int, position: float) -> None:
         """Move axis to the given position in microns."""
         assert index == self._index
-        if self._soft_limits.lower < position < self._soft_limits.upper:
+        if self._limits.lower < position < self._limits.upper:
             self._axis.move_to(position * self._units_per_um)
         else:
-            raise RuntimeError('not sure what to do when outside soft limits')
+            raise Exception('not sure what to do when outside soft limits')
         events.publish(events.STAGE_MOVER, self._index)
 
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
         assert index == self._index
         position = self.getPosition() + delta
-        if self._soft_limits.lower < position < self._soft_limits.upper:
+        if self._limits.lower < position < self._limits.upper:
             self._axis.move_by(delta * self._units_per_um)
         else:
-            raise RuntimeError('not sure what to do when outside soft limits')
+            raise Exception('not sure what to do when outside soft limits')
         events.publish(events.STAGE_MOVER, self._index)
 
-    def setSafety(self, index: int, value: float, isMax: bool):
-        """Set the min or max soft safety limit."""
+    def setSafety(self, index: int, value: float, isMax: bool) -> None:
+        """Set the min or max soft limit."""
         assert index == self._index
         # TODO: add some check that soft limits are not beyond the
         # hard limits or somehow swapped.
         if isMax:
-            self._soft_limits = AxisLimits(self._soft_limits.lower, value)
+            self._limits = AxisLimits(self._limits.lower, value)
         else:
-            self._soft_limits = AxisLimits(value, self._soft_limits.upper)
+            self._limits = AxisLimits(value, self._limits.upper)
 
 
 class MicroscopeStage(MicroscopeBase):
@@ -497,24 +499,32 @@ class MicroscopeStage(MicroscopeBase):
     This device requires two configurations per axis:
 
     1. The ``axis-name`` configuration specifies the name of the axis
-       on Python microscope ``StageDevice``.  Usually, this is
-       something like ``X`` or ``Y`` but can be anything.  Refer to
+       on the Python microscope ``StageDevice``.  Usually, this is
+       something like ``X`` or ``Y`` but can be any string.  Refer to
        the device documentation.
 
-    2. The ``units-per-µm`` number of units, or steps, used by the
-       device in a µm.  This value is used to convert between the
-       device units into physical units.
+    2. The ``units-per-µm`` configuration specifies the number of
+       units, or steps, used by the device in a µm.  This value is
+       used to convert between the device units into physical units.
 
-    For example, a remote XY stage, where each device step corresponds
-    to 0.1µm, would have a configuration entry like::
+    For example, a remote XY stage, with 0.1µm steps and a separate Z
+    stage with 25nm steps, would have a configuration entry like::
 
-      [XYStage]
+      [XY stage]
       type: cockpit.devices.microscopeDevice.MicroscopeStage
-      uri: PYRO:SomeStage@192.168.0.2:7001
+      uri: PYRO:SomeXYStage@192.168.0.2:7001
       x-axis-name: X
       y-axis-name: Y
-      x-units-per-µm: 100
-      x-units-per-µm: 100
+      # Each step is 0.1µm, therefore 10 steps per µm
+      x-units-per-µm: 10 # 1 step == 0.1µm
+      y-units-per-µm: 10 # 1 step == 0.1µm
+
+      [Z stage]
+      type: cockpit.devices.microscopeDevice.MicroscopeStage
+      uri: PYRO:SomeZStage@192.168.0.2:7002
+      z-axis-name: Z
+      # Each step is 25nm, therefore 40 steps per µm
+      x-units-per-µm: 40
 
     """
 
@@ -526,8 +536,12 @@ class MicroscopeStage(MicroscopeBase):
     def initialize(self) -> None:
         super().initialize()
 
+        # The names of the axiss we have already configured.  To avoid
+        # handling the same one under different names, and to ensure
+        # that we have all axis configured.
+        handled_axis_names = set()
+
         their_axes_map = self._proxy.axes
-        handled_axes_name = set()
         for one_letter_name in 'xyz':
             axis_config_name = one_letter_name + '-axis-name'
             if axis_config_name not in self.config:
@@ -536,11 +550,11 @@ class MicroscopeStage(MicroscopeBase):
 
             their_name = self.config[axis_config_name]
             if their_name not in their_axes_map:
-                raise RuntimeError('unknown axis named \'%s\'' % their_name)
+                raise Exception('unknown axis named \'%s\'' % their_name)
 
             units_config_name = one_letter_name + '-units-per-µm'
             if units_config_name not in self.config:
-                raise Exception('Missing \'%s\' value in the configuration'
+                raise Exception('missing \'%s\' value in the configuration'
                                 % units_config_name)
             units_per_um = float(self.config[units_config_name])
             if units_per_um <= 0.0:
@@ -548,21 +562,24 @@ class MicroscopeStage(MicroscopeBase):
                                  % units_config_name)
 
             their_axis = their_axes_map[their_name]
-            handled_axes_name.add(their_name)
-
             cockpit_index = stageMover.AXIS_MAP[one_letter_name]
             self._axes.append(_MicroscopeStageAxis(their_axis, cockpit_index,
                                                    units_per_um, self.name))
+            handled_axis_names.add(their_name)
 
+        # Ensure that there isn't a non handled axis.
         for their_axis_name in their_axes_map.keys():
-            if their_axis_name not in handled_axes_name:
-                # FIXME: maybe this should be a warning instead?
+            if their_axis_name not in handled_axis_names:
+                # FIXME: maybe this should be a warning instead?  What
+                # if this is a stage with more tha XYZ axis, and it's
+                # not configured simply because cockpit can't handle
+                # them?
                 raise Exception('No configuration for the axis named \'%s\''
                                 % their_axis_name)
 
         # Enabling the stage might cause it to move to home.  If it
         # has been enabled before, it might do nothing.  We have no
-        # way to know until we try it.
+        # way to know.
         self._proxy.enable()
 
 
