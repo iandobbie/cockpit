@@ -466,20 +466,13 @@ class _MicroscopeStageAxis:
     def moveAbsolute(self, index: int, position: float) -> None:
         """Move axis to the given position in microns."""
         assert index == self._index
-        if self._limits.lower < position < self._limits.upper:
-            self._axis.move_to(position * self._units_per_um)
-        else:
-            raise Exception('not sure what to do when outside soft limits')
+        self._axis.move_to(position * self._units_per_um)
         events.publish(events.STAGE_MOVER, self._index)
 
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
         assert index == self._index
-        position = self.getPosition() + delta
-        if self._limits.lower < position < self._limits.upper:
-            self._axis.move_by(delta * self._units_per_um)
-        else:
-            raise Exception('not sure what to do when outside soft limits')
+        self._axis.move_by(delta * self._units_per_um)
         events.publish(events.STAGE_MOVER, self._index)
 
     def setSafety(self, index: int, value: float, isMax: bool) -> None:
@@ -487,6 +480,7 @@ class _MicroscopeStageAxis:
         assert index == self._index
         # TODO: add some check that soft limits are not beyond the
         # hard limits or somehow swapped.
+        # FIXME: this methods is pointless.  
         if isMax:
             self._limits = AxisLimits(self._limits.lower, value)
         else:
