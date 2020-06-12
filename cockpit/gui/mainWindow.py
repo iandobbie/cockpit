@@ -121,7 +121,7 @@ class MainWindowPanel(wx.Panel):
         buttonSizer.Add(snapButton, 1, wx.EXPAND)
 
         # Video mode button
-        videoButton = wx.ToggleButton(topPanel, wx.ID_ANY, "Live")
+        videoButton = wx.ToggleButton(topPanel, wx.ID_ANY, "Live\nvideo")
         videoButton.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: cockpit.interfaces.imager.videoMode())
         events.subscribe(cockpit.events.VIDEO_MODE_TOGGLE, lambda state: videoButton.SetValue(state))
         buttonSizer.Add(videoButton, 1, wx.EXPAND)
