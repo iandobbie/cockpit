@@ -65,6 +65,7 @@ from cockpit.handlers.stagePositioner import PositionerHandler
 from cockpit.interfaces import stageMover
 import re
 from microscope.devices import AxisLimits
+import time
 
 # Pseudo-enum to track whether device defaults in place.
 (DEFAULTS_NONE, DEFAULTS_PENDING, DEFAULTS_SENT) = range(3)
@@ -424,13 +425,14 @@ class _MicroscopeStageAxis:
         self._axis = axis
         self._index = index
         self._units_per_um = units_per_um
+        self.sendingPositionUpdates = False
 
         # By default, soft limits are the hard limits
         hard_limits = AxisLimits(self._axis.limits.lower / self._units_per_um,
                                  self._axis.limits.upper / self._units_per_um)
         soft_limits = hard_limits
 
-        name = "%d %s" % (self._index, stage_name)
+        self.name = "%d %s" % (self._index, stage_name)
         group_name = "%d stage motion" % self._index
         eligible_for_experiments = False
         callbacks = {
@@ -445,7 +447,7 @@ class _MicroscopeStageAxis:
         step_sizes = [.1, .2, .5, 1, 2, 5, 10, 50, 100, 500, 1000, 5000]
         step_index = 3
 
-        self._handler = PositionerHandler(name, group_name,
+        self._handler = PositionerHandler(self.name, group_name,
                                           eligible_for_experiments, callbacks,
                                           self._index, step_sizes, step_index,
                                           hard_limits, soft_limits)
@@ -467,16 +469,41 @@ class _MicroscopeStageAxis:
         assert index == self._index
         self._axis.move_to(position * self._units_per_um)
         events.publish(events.STAGE_MOVER, self._index)
+        self.sendPositionUpdates()
 
     def moveRelative(self, index: int, delta: float) -> None:
         """Move the axis by the specified delta, in microns."""
         assert index == self._index
         self._axis.move_by(delta * self._units_per_um)
         events.publish(events.STAGE_MOVER, self._index)
+        self.sendPositionUpdates()
 
     def setSafety(self, index: int, value: float, isMax: bool) -> None:
         """Do nothing, this is handled by the handler."""
         pass
+
+    @cockpit.util.threads.callInNewThread
+    def sendPositionUpdates(self):
+        """Send XY stage positions until it stops moving."""
+        if self.sendingPositionUpdates is True:
+            # Already sending updates.
+            return
+        self.sendingPositionUpdates = True
+        moving = True
+        # Send positions at least once.
+        while moving:
+            # Need this thread to sleep to give UI a chance to update.
+            # Sleep at start of loop to allow stage time to respond to
+            # move request so remote.isMoving() returns True.
+            time.sleep(0.01)
+            # Update position cache before publishing STAGE_MOVER so
+            # that the UI gets the new position when it queries it.
+            self.getPosition(self._index)
+            moving = self._axis.is_moving()
+
+        events.publish(events.STAGE_STOPPED, self.name)
+        self.sendingPositionUpdates = False
+        return
 
 
 class MicroscopeStage(MicroscopeBase):
@@ -517,7 +544,6 @@ class MicroscopeStage(MicroscopeBase):
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
         super().__init__(name, config)
         self._axes = [] # type: typing.List[_MicroscopeStageAxis]
-
 
     def initialize(self) -> None:
         super().initialize()
@@ -572,3 +598,4 @@ class MicroscopeStage(MicroscopeBase):
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
         return [x.getHandler() for x in self._axes]
+
