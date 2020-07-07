@@ -449,8 +449,7 @@ class _MicroscopeStageAxis:
 
         self._handler = PositionerHandler(self.name, group_name,
                                           eligible_for_experiments, callbacks,
-                                          self._index, step_sizes, step_index,
-                                          hard_limits, soft_limits)
+                                          self._index, hard_limits, soft_limits)
 
     def getHandler(self) -> PositionerHandler:
         return self._handler
