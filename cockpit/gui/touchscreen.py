@@ -44,43 +44,6 @@ _VIEWPANEL_SIZE = wx.Size(250, 250)
 VarCtrlContCmdEvt, EVT_VAR_CTRL_CONT_COMMAND_EVENT = wx.lib.newevent.NewCommandEvent()
 
 
-class ObjectiveSelectionPanel(wx.Panel):
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, **kwargs)
-        self.objectives = []
-        self._set_properties()
-        self._do_layout()
-
-    def _set_properties(self):
-        pass
-
-    def _do_layout(self):
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # Label
-        sizer.Add(
-            wx.StaticText(self, label="Objective:"),
-            0,
-            wx.ALIGN_CENTER
-        )
-        # Choice widget for objective selection
-        choice = wx.Choice(self, choices=wx.GetApp().Objectives.GetNamesSorted())
-        sizer.Add(
-            choice,
-            1,
-            wx.ALIGN_CENTER | wx.LEFT,
-            5
-        )
-        choice.Bind(wx.EVT_CHOICE, lambda e: wx.GetApp().Objectives.ChangeObjective(e.GetString()))
-        wx.GetApp().Objectives.Bind(
-            cockpit.interfaces.EVT_OBJECTIVE_CHANGED,
-            lambda e: choice.SetSelection(choice.FindString(e.GetString()))
-        )
-        choice.SetSelection(choice.FindString(wx.GetApp().Objectives.GetName()))
-        # Finalise layout
-        self.SetSizer(sizer)
-        self.Layout()
-
-
 class IconButton(wx.ToggleButton):
     def __init__(self, parent, icon, callback, toggleable=False, icon_pressed=None, label_pressed="", **kwargs):
         super().__init__(parent, **kwargs)
@@ -117,9 +80,12 @@ class IconButton(wx.ToggleButton):
             self.SetValue(False)
 
 
-class MosaicButtonPanel(wx.Panel):
+class ActionsPanel(wx.Panel):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
+        self._sel_obj = None
+        self._sel_cam = None
+        self._sel_mar = None
         self._set_properties()
         self._do_layout()
 
@@ -127,8 +93,81 @@ class MosaicButtonPanel(wx.Panel):
         pass
 
     def _do_layout(self):
-        sizer = wx.GridSizer(4, wx.Size(3, 3))
-        sizer.AddMany((
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        # Objective choice
+        sizer_obj = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_obj.Add(
+            wx.StaticText(self, label="Objective:", size=wx.Size(90, -1)),
+            0,
+            wx.ALIGN_CENTER
+        )
+        self._sel_obj = wx.Choice(self, choices=wx.GetApp().Objectives.GetNamesSorted())
+        sizer_obj.Add(
+            self._sel_obj,
+            1,
+            wx.ALIGN_CENTER | wx.LEFT,
+            5
+        )
+        self._sel_obj.Bind(wx.EVT_CHOICE, lambda e: wx.GetApp().Objectives.ChangeObjective(e.GetString()))
+        wx.GetApp().Objectives.Bind(
+            cockpit.interfaces.EVT_OBJECTIVE_CHANGED,
+            lambda e: self._sel_obj.SetSelection(self._sel_obj.FindString(e.GetString()))
+        )
+        self._sel_obj.SetSelection(self._sel_obj.FindString(wx.GetApp().Objectives.GetName()))
+        sizer.Add(
+            sizer_obj,
+            0,
+            wx.EXPAND | wx.BOTTOM,
+            5
+        )
+        # Camera choice
+        # TODO: Is this really needed? It seems that the mosaic considers the first camera to be the active one, there is no room for selection.
+        sizer_cam = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_cam.Add(
+            wx.StaticText(self, label="Mosaic camera:", size=wx.Size(90, -1)),
+            0,
+            wx.ALIGN_CENTER
+        )
+        self._sel_cam = wx.Choice(self, choices=[camera.name for camera in depot.getHandlersOfType(depot.CAMERA)])
+        sizer_cam.Add(
+            self._sel_cam,
+            1,
+            wx.ALIGN_CENTER | wx.LEFT,
+            5
+        )
+        self._sel_cam.Bind(wx.EVT_CHOICE, lambda e: print(e))
+        # subscription
+        self._sel_cam.SetSelection(0)
+        sizer.Add(
+            sizer_cam,
+            0,
+            wx.EXPAND | wx.BOTTOM,
+            5
+        )
+        # Marker colour choice
+        sizer_mar = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_mar.Add(
+            wx.StaticText(self, label="Marker colour:", size=wx.Size(90, -1)),
+            0,
+            wx.ALIGN_CENTER
+        )
+        self._sel_mar = wx.Choice(self, choices=["red", "green", "blue"])
+        sizer_mar.Add(
+            self._sel_mar,
+            1,
+            wx.ALIGN_CENTER | wx.LEFT,
+            5
+        )
+        self._sel_mar.SetSelection(0)
+        sizer.Add(
+            sizer_mar,
+            0,
+            wx.EXPAND | wx.BOTTOM,
+            5
+        )
+        # Button grid
+        sizer_grid = wx.GridSizer(4, wx.Size(3, 3))
+        sizer_grid.AddMany((
             (IconButton(self, "touchscreen/raster_x24/action_mosaic_run.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster_x24/action_mosaic_pause.png", label="Mosaic", label_pressed="Mosaic"), wx.ALIGN_CENTER),
             (IconButton(self, "touchscreen/raster_x24/action_centre.png", lambda e: self._cb_centre(e), label="Centre"), wx.ALIGN_CENTER),
             (IconButton(self, "touchscreen/raster_x24/action_erase.png", lambda e: self._cb_erase(e), label="Erase"), wx.ALIGN_CENTER),
@@ -137,6 +176,12 @@ class MosaicButtonPanel(wx.Panel):
             (IconButton(self, "touchscreen/raster_x24/action_live.png", lambda e: self._cb_live(e), label="Live"), wx.ALIGN_CENTER),
             (IconButton(self, "touchscreen/raster_x24/action_marker.png", lambda e: self._cb_marker(e), label="Marker"), wx.ALIGN_CENTER)
         ))
+        sizer.Add(
+            sizer_grid,
+            0,
+            wx.ALIGN_CENTRE
+        )
+        # Finalise layout
         self.SetSizer(sizer)
         self.Layout()
 
@@ -159,13 +204,8 @@ class MosaicButtonPanel(wx.Panel):
         if not cams or not lights:
             print ("Snap needs a light and a camera to opperate")
             return
-        # Find the name of the active camera
-        choice = self.GetParent().GetChildren()[0].GetChildren()[1].GetChildren()[0].GetChildren()[1]
-        camera_name = choice.GetString(choice.GetSelection())
-        if camera_name not in [cam.name for cam in cams]:
-            # TODO: This is wrong. It should be the choice widget that doesn't allow for an inactive camera to be selected!
-            print("Selected camera is not enabled")
-            return
+        # Find the name of the active (first) camera
+        camera_name = cams[0].name
         # Take the image
         events.executeAndWaitFor(events.NEW_IMAGE % camera_name, wx.GetApp().Imager.takeImage, shouldStopVideo = False)
         mosaic.transferCameraImage()
@@ -465,37 +505,12 @@ class MenuColumn(wx.Panel):
             1,
             wx.EXPAND
         )
-        lights_panel_sizer.Add(lights_panel_staticboxsizer, 1, wx.EXPAND | wx.BOTTOM, 5)
+        lights_panel_sizer.Add(lights_panel_staticboxsizer, 1, wx.EXPAND)
         lights_panel.SetSizer(lights_panel_sizer)
         ## Camera selection
         cameras_panel = wx.Panel(splitter_window)
         cameras_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         cameras_panel_staticboxsizer = wx.StaticBoxSizer(wx.VERTICAL, cameras_panel, "Camera...")
-
-        cameras_panel_mosaic_choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        cameras_panel_mosaic_choice_sizer.Add(
-            wx.StaticText(cameras_panel_staticboxsizer.GetStaticBox(), label="Mosaic camera:"), 
-            0,
-            wx.ALIGN_CENTER
-        )
-        choice_camera_mosaic = wx.Choice(
-            cameras_panel_staticboxsizer.GetStaticBox(),
-            choices=[camera.name for camera in depot.getHandlersOfType(depot.CAMERA)]
-        )
-        choice_camera_mosaic.SetSelection(0)
-        cameras_panel_mosaic_choice_sizer.Add(
-            choice_camera_mosaic,
-            1,
-            wx.EXPAND | wx.LEFT,
-            5
-        )
-        cameras_panel_staticboxsizer.Add(
-            cameras_panel_mosaic_choice_sizer,
-            0,
-            wx.EXPAND | wx.BOTTOM,
-            5
-        )
-
         cameras_panel_staticboxsizer.Add(
             CamerasPanel(cameras_panel_staticboxsizer.GetStaticBox()),
             1,
@@ -507,41 +522,14 @@ class MenuColumn(wx.Panel):
         splitter_window.SplitHorizontally(lights_panel, cameras_panel)
         splitter_window.SetSashGravity(0.5)
         # Actions
-        sizer_objective_selection = wx.StaticBoxSizer(wx.VERTICAL, self, "ACTION!")
-        sizer_objective_selection.Add(
-            ObjectiveSelectionPanel(self),
-            0,
-            wx.EXPAND
-        )
-        # TODO: Mess. Split into a separate class, just like the objective selection
-        sizer_marker_selection = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_marker_selection.Add(
-            wx.StaticText(self, label="Marker:    "),
-            0,
-            wx.ALIGN_CENTER
-        )
-        marker_choice = wx.Choice(self, choices=["red", "green", "blue"])
-        marker_choice.SetSelection(0)
-        sizer_marker_selection.Add(
-            marker_choice,
-            1,
-            wx.ALIGN_CENTER | wx.LEFT,
-            5
-        )
-        sizer_objective_selection.Add(
-            sizer_marker_selection,
-            0,
-            wx.EXPAND | wx.TOP,
-            5
-        )
-        # ---
-        sizer_objective_selection.Add(
-            MosaicButtonPanel(self),
+        sizer_actions = wx.StaticBoxSizer(wx.VERTICAL, self, "ACTION!")
+        sizer_actions.Add(
+            ActionsPanel(self),
             0,
             wx.TOP,
             5
         )
-        sizer_main.Add(sizer_objective_selection, 0, wx.EXPAND | wx.ALL, 5)
+        sizer_main.Add(sizer_actions, 0, wx.EXPAND | wx.ALL, 5)
         # Finalise layout
         self.SetSizer(sizer_main)
         self.Layout()
