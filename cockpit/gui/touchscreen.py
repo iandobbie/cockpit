@@ -129,13 +129,13 @@ class MosaicButtonPanel(wx.Panel):
     def _do_layout(self):
         sizer = wx.GridSizer(4, wx.Size(3, 3))
         sizer.AddMany((
-            (IconButton(self, "touchscreen\\raster_x24\\action_mosaic_run.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen\\raster_x24\\action_mosaic_pause.png", label="Mosaic", label_pressed="Mosaic"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_centre.png", lambda e: self._cb_centre(e), label="Centre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_erase.png", lambda e: self._cb_erase(e), label="Erase"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_experiment_inactive.png", lambda e: self._cb_experiment(e), toggleable=True, icon_pressed="touchscreen\\raster_x24\\action_experiment_active.png", label="Expr", label_pressed="Expr"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_snap.png", lambda e: self._cb_snap(e), label="Snap"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_live.png", lambda e: self._cb_live(e), label="Live"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\action_marker.png", lambda e: self._cb_marker(e), label="Marker"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x24/action_mosaic_run.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster_x24/action_mosaic_pause.png", label="Mosaic", label_pressed="Mosaic"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_centre.png", lambda e: self._cb_centre(e), label="Centre"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_erase.png", lambda e: self._cb_erase(e), label="Erase"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_experiment_inactive.png", lambda e: self._cb_experiment(e), toggleable=True, icon_pressed="touchscreen/raster_x24/action_experiment_active.png", label="Expr", label_pressed="Expr"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_snap.png", lambda e: self._cb_snap(e), label="Snap"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_live.png", lambda e: self._cb_live(e), label="Live"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/action_marker.png", lambda e: self._cb_marker(e), label="Marker"), wx.ALIGN_CENTER)
         ))
         self.SetSizer(sizer)
         self.Layout()
@@ -198,12 +198,12 @@ class VariableControlContinuous(wx.Panel):
 
     def _do_layout(self):
         # Minus button
-        img_minus = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\minus.png"))
+        img_minus = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/minus.png"))
         self._but0 = wx.Button(self, size=wx.Size(24, 24))
         self._but0.SetBitmap(img_minus.ConvertToBitmap())
         self._but0.Bind(wx.EVT_BUTTON, lambda e: self._step(False))
         # Plus button
-        img_plus = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\plus.png"))
+        img_plus = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/plus.png"))
         self._but1 = wx.Button(self, size=wx.Size(24, 24))
         self._but1.SetBitmap(img_plus.ConvertToBitmap())
         self._but1.Bind(wx.EVT_BUTTON, lambda e: self._step(True))
@@ -286,7 +286,7 @@ class LightsPanelEntry(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         # First row: wavelength bitmap and a toggle button
         sizer_row0 = wx.BoxSizer(wx.HORIZONTAL)
-        img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\wavelength.png"))
+        img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/wavelength.png"))
         if self.power:
             img.Replace(255, 255, 255, *wavelengthToColor(self.power.wavelength))
         sizer_row0.Add(wx.StaticBitmap(self, bitmap=img.ConvertToBitmap()), 0, wx.ALIGN_CENTER)
@@ -296,7 +296,7 @@ class LightsPanelEntry(wx.Panel):
         sizer.Add(sizer_row0, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         # Second row: exposure control
         sizer_row1 = wx.BoxSizer(wx.HORIZONTAL)
-        exposure_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\pulse.png"))
+        exposure_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/pulse.png"))
         exposure_ctrl = VariableControlContinuous(self, init_val=100, step_scale=1.2, units="ms", limit_low=1)
         exposure_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.light.setExposureTime(e.GetClientData()))
         self.light.addWatch('exposureTime', exposure_ctrl.set_value)
@@ -308,7 +308,7 @@ class LightsPanelEntry(wx.Panel):
             sizer_row2 = wx.BoxSizer(wx.VERTICAL)
             # Upper subrow
             sizer_row2_row0 = wx.BoxSizer(wx.HORIZONTAL)
-            power_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\power.png"))
+            power_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/power.png"))
             power_ctrl = VariableControlContinuous(self, init_val=self.power.powerSetPoint * 100, step_offset=1, units="% ", limit_low=0, limit_high=100)
             power_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.power.setPower(e.GetClientData() / 100))
             self.power.addWatch('powerSetPoint', lambda x: power_ctrl.set_value(x * 100))
@@ -382,7 +382,7 @@ class CamerasPanelEntry(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         # First row: bitmap, and toggle button
         sizer_row0 = wx.BoxSizer(wx.HORIZONTAL)
-        img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\wavelength.png"))
+        img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/wavelength.png"))
         if self.camera_handler.wavelength:
             img.Replace(255, 255, 255, *self.camera_handler.color)
         sizer_row0.Add(wx.StaticBitmap(self, bitmap=img.ConvertToBitmap()), 0, wx.ALIGN_CENTER)
@@ -394,7 +394,7 @@ class CamerasPanelEntry(wx.Panel):
         if "gain" in self.camera.settings:
             sizer_row1 = wx.BoxSizer(wx.HORIZONTAL)
             gain_min, gain_max = self.camera.describe_setting("gain")["values"]
-            gain_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen\\raster_x18\\opamp.png"))
+            gain_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/opamp.png"))
             gain_ctrl = VariableControlContinuous(self, init_val=self.camera.settings["gain"], step_offset=1, units="", limit_low=gain_min, limit_high=gain_max)
             gain_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e:self.camera.updateSettings({"gain": e.GetClientData()}))
             events.subscribe(events.SETTINGS_CHANGED % self.camera, lambda: gain_ctrl.set_value(self.camera.settings["gain"]))
@@ -817,10 +817,10 @@ class StageControlXY(wx.Panel):
         # Buttons
         sizer_buttons = wx.GridSizer(4, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen\\raster_x24\\stage_left.png", lambda e: self._go_left(e), label="Go left"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_up.png", lambda e: self._go_up(e), label="Go up"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_down.png", lambda e: self._go_down(e), label="Go down"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_right.png", lambda e: self._go_right(e), label="Go right"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x24/stage_left.png", lambda e: self._go_left(e), label="Go left"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_up.png", lambda e: self._go_up(e), label="Go up"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_down.png", lambda e: self._go_down(e), label="Go down"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_right.png", lambda e: self._go_right(e), label="Go right"), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
@@ -874,14 +874,14 @@ class StageControlZ(wx.Panel):
         # Buttons
         sizer_buttons = wx.GridSizer(4, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen\\raster_x24\\stage_up.png",          lambda e: self._cb_up(e), label="Go up"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_save_top.png",    lambda e: self._cb_save_top(e), label="Save top"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_go_top.png",          lambda e: self._cb_go_top(e), label="Go top"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_go_centre.png",      lambda e: self._cb_go_centre(e), label="Go centre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_down.png",        lambda e: self._cb_down(e), label="Go down"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_save_bottom.png", lambda e: self._cb_save_bottom(e), label="Save bot."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_go_bottom.png",        lambda e: self._cb_go_bottom(e), label="Go bot."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_touchdown.png",        lambda e: self._cb_touchdown(e), label="Tchdwn"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x24/stage_up.png",          lambda e: self._cb_up(e), label="Go up"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_save_top.png",    lambda e: self._cb_save_top(e), label="Save top"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_go_top.png",          lambda e: self._cb_go_top(e), label="Go top"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_go_centre.png",      lambda e: self._cb_go_centre(e), label="Go centre"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_down.png",        lambda e: self._cb_down(e), label="Go down"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_save_bottom.png", lambda e: self._cb_save_bottom(e), label="Save bot."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_go_bottom.png",        lambda e: self._cb_go_bottom(e), label="Go bot."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_touchdown.png",        lambda e: self._cb_touchdown(e), label="Tchdwn"), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
@@ -926,10 +926,10 @@ class StageControlCommon(wx.Panel):
         # Buttons
         sizer = wx.GridSizer(4, wx.Size(3, 3))
         sizer.AddMany((
-            (IconButton(self, "touchscreen\\raster_x24\\stage_safeties.png", lambda e: self._cb_safeties(e), label="Safeties"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_switch.png", lambda e: self._cb_switch(e), label="Switch"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_recentre.png", lambda e: self._cb_recentre(e), label="Recentre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen\\raster_x24\\stage_go_to.png", lambda e: self._cb_go_to(e), label="Go to"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x24/stage_safeties.png", lambda e: self._cb_safeties(e), label="Safeties"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_switch.png", lambda e: self._cb_switch(e), label="Switch"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_recentre.png", lambda e: self._cb_recentre(e), label="Recentre"), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x24/stage_go_to.png", lambda e: self._cb_go_to(e), label="Go to"), wx.ALIGN_CENTER)
         ))
         # Finalise layout
         self.SetSizer(sizer)
