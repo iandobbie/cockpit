@@ -1037,7 +1037,7 @@ class ImagePreviewPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     @cockpit.util.threads.callInMainThread
     def onCameraEnableEvent(self, camera, enabled):
-        views = self.GetChildren()
+        views = [child for child in self.GetChildren() if isinstance(child, ViewPanel)]
         activeViews = [view for view in views if view.getIsEnabled()]
         if enabled and camera not in [view.curCamera for view in activeViews]:
             inactiveViews = set(views).difference(activeViews)
@@ -1052,13 +1052,14 @@ class ImagePreviewPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     def resetGrid(self):
         viewsToShow = []
-        for view in self.GetChildren():
+        views = [child for child in self.GetChildren() if isinstance(child, ViewPanel)]
+        for view in views:
             view.Hide()
             if view.getIsEnabled():
                 viewsToShow.append(view)
         # If there are no active views then display one empty panel.
         if not viewsToShow:
-            viewsToShow.append(self.GetChildren()[0])
+            viewsToShow.append(views[0])
 
         self.GetSizer().Clear()
         for view in viewsToShow:
