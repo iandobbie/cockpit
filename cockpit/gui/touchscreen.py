@@ -45,25 +45,24 @@ VarCtrlContCmdEvt, EVT_VAR_CTRL_CONT_COMMAND_EVENT = wx.lib.newevent.NewCommandE
 
 
 class IconButton(wx.ToggleButton):
-    def __init__(self, parent, icon, callback, toggleable=False, icon_pressed=None, label_pressed="", **kwargs):
+    def __init__(self, parent, icon, callback, toggleable=False, icon_pressed=None, rows=1, cols=1, **kwargs):
         super().__init__(parent, **kwargs)
         self.icon = icon
         self.icon_pressed = icon_pressed
         self.callback = callback
         self.toggleable = toggleable
-        self.label_pressed = label_pressed # TODO: not used, need to be removed
+        self._rows = rows
+        self._cols = cols
         self.timer = wx.Timer(self)
         self._set_properties()
         self._do_layout()
 
     def _set_properties(self):
-        self.SetMinSize(wx.Size(64, 48))
+        self.SetMinSize(wx.Size(self._cols * 48, self._rows * 48))
         image = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, self.icon))
-        image.Resize(wx.Size(24, 28), wx.Point(0, 4))
-        self.SetBitmap(image.ConvertToBitmap(), wx.TOP)
+        self.SetBitmap(image.ConvertToBitmap())
         if self.icon_pressed:
             image = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, self.icon_pressed))
-            image.Resize(wx.Size(24, 28), wx.Point(0, 4))
             self.SetBitmapPressed(image.ConvertToBitmap())
         self.Bind(wx.EVT_TOGGLEBUTTON, lambda e: self._visual_feedback(e))
         self.Bind(wx.EVT_TIMER, lambda e: self._on_timer(e))
@@ -166,15 +165,17 @@ class ActionsPanel(wx.Panel):
             5
         )
         # Button grid
-        sizer_grid = wx.GridSizer(4, wx.Size(3, 3))
+        sizer_grid = wx.GridBagSizer(vgap=3, hgap=3)
         sizer_grid.AddMany((
-            (IconButton(self, "touchscreen/raster_x24/action_mosaic_run.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster_x24/action_mosaic_pause.png", label="Mosaic", label_pressed="Mosaic"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_centre.png", lambda e: self._cb_centre(e), label="Centre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_erase.png", lambda e: self._cb_erase(e), label="Erase"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_experiment_inactive.png", lambda e: self._cb_experiment(e), toggleable=True, icon_pressed="touchscreen/raster_x24/action_experiment_active.png", label="Expr", label_pressed="Expr"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_snap.png", lambda e: self._cb_snap(e), label="Snap"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_live.png", lambda e: self._cb_live(e), label="Live"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/action_marker.png", lambda e: self._cb_marker(e), label="Marker"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x32/action_mosaic_run.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster_x32/action_mosaic_pause.png"), wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_centre.png", lambda e: self._cb_centre(e)), wx.GBPosition(0, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_erase.png", lambda e: self._cb_erase(e)), wx.GBPosition(0, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_experiment.png", lambda e: self._cb_experiment(e)), wx.GBPosition(0, 3), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_marker.png", lambda e: self._cb_marker(e)), wx.GBPosition(0, 4), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_snap.png", lambda e: self._cb_snap(e)), wx.GBPosition(1, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_live.png", lambda e: self._cb_live(e)), wx.GBPosition(1, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_help.png", lambda e: self._cb_help(e)), wx.GBPosition(1, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/action_abort.png", lambda e: self._cb_abort(e), cols=2), wx.GBPosition(1, 3), wx.GBSpan(1, 2), wx.ALIGN_CENTER),
         ))
         sizer.Add(
             sizer_grid,
@@ -197,6 +198,9 @@ class ActionsPanel(wx.Panel):
     def _cb_experiment(self, e):
         pass
 
+    def _cb_marker(self, e):
+        pass
+
     def _cb_snap(self, e):
         # Check that there is at least one camera and one light source active
         cams = depot.getActiveCameras()
@@ -213,7 +217,10 @@ class ActionsPanel(wx.Panel):
     def _cb_live(self, e):
         pass
 
-    def _cb_marker(self, e):
+    def _cb_help(self, e):
+        pass
+
+    def _cb_abort(self, e):
         pass
 
 
@@ -289,7 +296,7 @@ class VariableControlContinuous(wx.Panel):
             self.set_value(new_value)
             evt = VarCtrlContCmdEvt(wx.ID_ANY)
             evt.SetEventObject(self)
-            evt.SetClientData(new_value)
+            evt.SetClientData((direction, new_value))
             wx.PostEvent(self, evt)
 
     def _update_label(self):
@@ -338,7 +345,7 @@ class LightsPanelEntry(wx.Panel):
         sizer_row1 = wx.BoxSizer(wx.HORIZONTAL)
         exposure_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/pulse.png"))
         exposure_ctrl = VariableControlContinuous(self, init_val=100, step_scale=1.2, units="ms", limit_low=1)
-        exposure_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.light.setExposureTime(e.GetClientData()))
+        exposure_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.light.setExposureTime(e.GetClientData()[1]))
         self.light.addWatch('exposureTime', exposure_ctrl.set_value)
         sizer_row1.Add(wx.StaticBitmap(self, bitmap=exposure_img.ConvertToBitmap()), 0, wx.ALIGN_CENTER)
         sizer_row1.Add(exposure_ctrl, 1, wx.ALIGN_CENTER | wx.LEFT, 5)
@@ -350,7 +357,7 @@ class LightsPanelEntry(wx.Panel):
             sizer_row2_row0 = wx.BoxSizer(wx.HORIZONTAL)
             power_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/power.png"))
             power_ctrl = VariableControlContinuous(self, init_val=self.power.powerSetPoint * 100, step_offset=1, units="% ", limit_low=0, limit_high=100)
-            power_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.power.setPower(e.GetClientData() / 100))
+            power_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: self.power.setPower(e.GetClientData()[1] / 100))
             self.power.addWatch('powerSetPoint', lambda x: power_ctrl.set_value(x * 100))
             sizer_row2_row0.Add(wx.StaticBitmap(self, bitmap=power_img.ConvertToBitmap()), 0, wx.ALIGN_CENTER)
             sizer_row2_row0.Add(power_ctrl, 1, wx.ALIGN_CENTER | wx.LEFT, 5)
@@ -436,7 +443,7 @@ class CamerasPanelEntry(wx.Panel):
             gain_min, gain_max = self.camera.describe_setting("gain")["values"]
             gain_img = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/raster_x18/opamp.png"))
             gain_ctrl = VariableControlContinuous(self, init_val=self.camera.settings["gain"], step_offset=1, units="", limit_low=gain_min, limit_high=gain_max)
-            gain_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e:self.camera.updateSettings({"gain": e.GetClientData()}))
+            gain_ctrl.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e:self.camera.updateSettings({"gain": e.GetClientData()[1]}))
             events.subscribe(events.SETTINGS_CHANGED % self.camera, lambda: gain_ctrl.set_value(self.camera.settings["gain"]))
             sizer_row1.Add(wx.StaticBitmap(self, bitmap=gain_img.ConvertToBitmap()), 0, wx.ALIGN_CENTER)
             sizer_row1.Add(gain_ctrl, 1, wx.ALIGN_CENTER | wx.LEFT, 5)
@@ -788,57 +795,61 @@ class StageControlXY(wx.Panel):
         ## x
         sizer_step_x = wx.BoxSizer(wx.HORIZONTAL)
         sizer_step_x.Add(wx.StaticText(self, label="X step:"), 0, wx.ALIGN_CENTRE)
-        varctrl_step_x = VariableControlContinuous(self, init_val=100, step_scale=5, units="um")
-        varctrl_step_x.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(0, e.GetClientData()))
+        varctrl_step_x = VariableControlContinuous(self, init_val=wx.GetApp().Stage.GetStepSizes()[0], step_scale=5, units="um")
+        # TODO: Use cockpit.interfaces.stageMover.changeStepSize but modify it to allow specifying an axis instead of changing all of them at the same time
+        varctrl_step_x.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(0, e.GetClientData()[1]))
         cockpit.gui.EvtEmitter(self, 'stage step size').Bind(cockpit.gui.EVT_COCKPIT, lambda e: varctrl_step_x.set_value(e.EventData[1]) if e.EventData[0] == 0 else e.Skip())
         sizer_step_x.Add(varctrl_step_x, 1, wx.LEFT, 5)
         ## y
         sizer_step_y = wx.BoxSizer(wx.HORIZONTAL)
         sizer_step_y.Add(wx.StaticText(self, label="Y step:"), 0, wx.ALIGN_CENTRE)
-        varctrl_step_y = VariableControlContinuous(self, init_val=100, step_scale=5, units="um")
-        varctrl_step_y.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(1, e.GetClientData()))
+        varctrl_step_y = VariableControlContinuous(self, init_val=wx.GetApp().Stage.GetStepSizes()[1], step_scale=5, units="um")
+        varctrl_step_y.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(1, e.GetClientData()[1]))
         cockpit.gui.EvtEmitter(self, 'stage step size').Bind(cockpit.gui.EVT_COCKPIT, lambda e: varctrl_step_y.set_value(e.EventData[1]) if e.EventData[0] == 1 else e.Skip())
         sizer_step_y.Add(varctrl_step_y, 1, wx.LEFT, 5)
         ## common
         sizer.Add(sizer_step_x, 0, wx.EXPAND | wx.TOP, 5)
         sizer.Add(sizer_step_y, 0, wx.EXPAND | wx.TOP, 5)
         # Buttons
-        sizer_buttons = wx.GridSizer(4, wx.Size(3, 3))
+        sizer_buttons = wx.GridSizer(5, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen/raster_x24/stage_left.png", lambda e: self._go_left(e), label="Go left"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_up.png", lambda e: self._go_up(e), label="Go up"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_down.png", lambda e: self._go_down(e), label="Go down"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_right.png", lambda e: self._go_right(e), label="Go right"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x32/stage_left.png", lambda e: self._cb_left(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_up.png", lambda e: self._cb_up(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_down.png", lambda e: self._cb_down(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_right.png", lambda e: self._cb_right(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_mosaic.png", lambda e: self._cb_mosaic(e)), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
         self.SetSizer(sizer)
         self.Layout()
 
-    def _go_left(self, e):
+    def _cb_left(self, e):
         pose = cockpit.interfaces.stageMover.getPosition()[:2]
         step = cockpit.interfaces.stageMover.getCurStepSizes()[0]
         pose[0] += step
         cockpit.interfaces.stageMover.goToXY(pose)
 
-    def _go_up(self, e):
+    def _cb_up(self, e):
         pose = cockpit.interfaces.stageMover.getPosition()[:2]
         step = cockpit.interfaces.stageMover.getCurStepSizes()[1]
         pose[1] += step
         cockpit.interfaces.stageMover.goToXY(pose)
 
-    def _go_down(self, e):
+    def _cb_down(self, e):
         pose = cockpit.interfaces.stageMover.getPosition()[:2]
         step = cockpit.interfaces.stageMover.getCurStepSizes()[1]
         pose[1] -= step
         cockpit.interfaces.stageMover.goToXY(pose)
 
-    def _go_right(self, e):
+    def _cb_right(self, e):
         pose = cockpit.interfaces.stageMover.getPosition()[:2]
         step = cockpit.interfaces.stageMover.getCurStepSizes()[0]
         pose[0] -= step
         cockpit.interfaces.stageMover.goToXY(pose)
 
+    def _cb_mosaic(self, e):
+        pass
 
 class StageControlZ(wx.Panel):
     def __init__(self, parent, **kwargs):
@@ -854,56 +865,67 @@ class StageControlZ(wx.Panel):
         # Step control
         sizer_step_z = wx.BoxSizer(wx.HORIZONTAL)
         sizer_step_z.Add(wx.StaticText(self, label="Z step:"), 0, wx.ALIGN_CENTRE)
-        varctrl_step_z = VariableControlContinuous(self, init_val=200, step_scale=5, units="um")
-        varctrl_step_z.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(2, e.GetClientData()))
+        varctrl_step_z = VariableControlContinuous(self, init_val=wx.GetApp().Stage.GetStepSizes()[2], step_scale=5, units="um")
+        varctrl_step_z.Bind(EVT_VAR_CTRL_CONT_COMMAND_EVENT, lambda e: wx.GetApp().Stage.SetStepSize(2, e.GetClientData()[1]))
         cockpit.gui.EvtEmitter(self, 'stage step size').Bind(cockpit.gui.EVT_COCKPIT, lambda e: varctrl_step_z.set_value(e.EventData[1]) if e.EventData[0] == 2 else e.Skip())
         sizer_step_z.Add(varctrl_step_z, 1, wx.LEFT, 5)
         sizer.Add(sizer_step_z, 0, wx.EXPAND | wx.TOP, 10)
         # Buttons
-        sizer_buttons = wx.GridSizer(4, wx.Size(3, 3))
+        sizer_buttons = wx.GridSizer(5, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen/raster_x24/stage_up.png",          lambda e: self._cb_up(e), label="Go up"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_save_top.png",    lambda e: self._cb_save_top(e), label="Save top"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_go_top.png",          lambda e: self._cb_go_top(e), label="Go top"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_go_centre.png",      lambda e: self._cb_go_centre(e), label="Go centre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_down.png",        lambda e: self._cb_down(e), label="Go down"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_save_bottom.png", lambda e: self._cb_save_bottom(e), label="Save bot."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_go_bottom.png",        lambda e: self._cb_go_bottom(e), label="Go bot."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_touchdown.png",        lambda e: self._cb_touchdown(e), label="Tchdwn"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x32/stage_up.png",          lambda e: self._cb_up(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_save_top.png",    lambda e: self._cb_save_top(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_go_top.png",          lambda e: self._cb_go_top(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_go_centre.png",      lambda e: self._cb_go_centre(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_recentre.png",          lambda e: self._cb_recentre(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_down.png",        lambda e: self._cb_down(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_save_bottom.png", lambda e: self._cb_save_bottom(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_go_bottom.png",        lambda e: self._cb_go_bottom(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_touchdown.png",        lambda e: self._cb_touchdown(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_switch.png",          lambda e: self._cb_switch(e)), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
         self.SetSizer(sizer)
         self.Layout()
-    
+
     def _cb_up(self, e):
-        pass
+        cockpit.interfaces.stageMover.goToZ(cockpit.interfaces.stageMover.getPosition()[2] + cockpit.interfaces.stageMover.getCurStepSizes()[2])
 
     def _cb_save_top(self, e):
-        pass
+        cockpit.interfaces.stageMover.mover.SavedTop = cockpit.interfaces.stageMover.getPosition()[2]
 
     def _cb_go_top(self, e):
-        pass
+        cockpit.interfaces.stageMover.moveZCheckMoverLimits(cockpit.interfaces.stageMover.mover.SavedTop)
 
     def _cb_go_centre(self, e):
-        pass
+        bottom = cockpit.interfaces.stageMover.mover.SavedBottom
+        top = cockpit.interfaces.stageMover.mover.SavedTop
+        centre = bottom + (top - bottom) / 2.0
+        cockpit.interfaces.stageMover.moveZCheckMoverLimits(centre)
+
+    def _cb_recentre(self, e):
+        cockpit.interfaces.stageMover.recenterFineMotion()
 
     def _cb_down(self, e):
-        pass
+        cockpit.interfaces.stageMover.goToZ(cockpit.interfaces.stageMover.getPosition()[2] - cockpit.interfaces.stageMover.getCurStepSizes()[2])
 
     def _cb_save_bottom(self, e):
-        pass
+        cockpit.interfaces.stageMover.mover.SavedBottom = cockpit.interfaces.stageMover.getPosition()[2]
 
     def _cb_go_bottom(self, e):
-        pass
+        cockpit.interfaces.stageMover.moveZCheckMoverLimits(cockpit.interfaces.stageMover.mover.SavedBottom)
 
     def _cb_touchdown(self, e):
-        pass
+        cockpit.interfaces.stageMover.goToZ(wx.GetApp().Config["stage"].getfloat("slideTouchdownAltitude"))
 
+    def _cb_switch(self, e):
+        pass
 
 class StageControlCommon(wx.Panel):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
+        self.dialog_safeties = None
         self._set_properties()
         self._do_layout()
 
@@ -912,25 +934,19 @@ class StageControlCommon(wx.Panel):
 
     def _do_layout(self):
         # Buttons
-        sizer = wx.GridSizer(4, wx.Size(3, 3))
+        sizer = wx.GridSizer(5, wx.Size(3, 3))
         sizer.AddMany((
-            (IconButton(self, "touchscreen/raster_x24/stage_safeties.png", lambda e: self._cb_safeties(e), label="Safeties"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_switch.png", lambda e: self._cb_switch(e), label="Switch"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_recentre.png", lambda e: self._cb_recentre(e), label="Recentre"), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster_x24/stage_go_to.png", lambda e: self._cb_go_to(e), label="Go to"), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster_x32/stage_safeties.png", lambda e: self._cb_safeties(e)), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster_x32/stage_go_to.png", lambda e: self._cb_go_to(e)), wx.ALIGN_CENTER)
         ))
         # Finalise layout
         self.SetSizer(sizer)
         self.Layout()
     
     def _cb_safeties(self, e):
-        pass
-
-    def _cb_switch(self, e):
-        pass
-
-    def _cb_recentre(self, e):
-        pass
+        if self.dialog_safeties is None:
+            self.dialog_safeties = DialogSafeties(self)
+        self.dialog_safeties.Show()
 
     def _cb_go_to(self, e):
         pass
@@ -1079,6 +1095,95 @@ class ImagePreviewPanel(wx.lib.scrolledpanel.ScrolledPanel):
             new_height = new_width / vp_aspect_ratio
             for view in viewsToShow:
                 view.change_size(wx.Size(new_width, new_height))
+
+
+class DialogSafeties(wx.Dialog):
+    def __init__(self, parent, **kwargs):
+        kwargs["title"] = "Set stages' soft limits"
+        self._scrollbars = []
+        self._textctrls = []
+        super().__init__(parent, **kwargs)
+        self._set_properties()
+        self._do_layout()
+
+    def _set_properties(self):
+        pass
+
+    def _do_layout(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        # Add controls
+        for axis_index, axis_label in enumerate(("X", "Y", "Z")):
+            for limit_index, limit_label in enumerate(("min", "max")):
+                # Boundaries
+                limits_hard = cockpit.interfaces.stageMover.getHardLimitsForAxis(axis_index)
+                limits_soft = cockpit.interfaces.stageMover.getSoftLimitsForAxis(axis_index)
+                # Widgets
+                scrollbar = wx.ScrollBar(self, size=wx.Size(256, 32))
+                scrollbar.SetScrollbar(limits_soft[limit_index], 0, limits_hard[1] - limits_hard[0], 100)
+                textctrl = wx.TextCtrl(self, size=wx.Size(64, -1), value="{:g}".format(limits_soft[limit_index]), style=wx.TE_CENTRE | wx.TE_PROCESS_ENTER)
+                self._scrollbars.append(scrollbar)
+                self._textctrls.append(textctrl)
+                # Event handling
+                scrollbar.Bind(wx.EVT_SCROLL, lambda e, tc=textctrl: tc.SetValue("{:g}".format(e.GetPosition())))
+                textctrl.Bind(wx.EVT_TEXT_ENTER, lambda e, sb=scrollbar: self._update_scrollbar(sb, int(e.GetString())))
+                textctrl.Bind(wx.EVT_KILL_FOCUS, lambda e, sb=scrollbar: self._on_focus_kill(sb, int(e.GetString())))
+                # Sizing
+                sizer_row = wx.BoxSizer(wx.HORIZONTAL)
+                sizer_row.Add(wx.StaticText(self, label="{:s} {:s}".format(axis_label, limit_label)), 0, wx.ALIGN_CENTRE)
+                sizer_row.Add(scrollbar, 1, wx.ALIGN_CENTRE | wx.LEFT, 5)
+                sizer_row.Add(textctrl, 0, wx.ALIGN_CENTRE | wx.LEFT, 5)
+                sizer_row.Add(wx.StaticText(self, label="um"), 0, wx.ALIGN_CENTER | wx.LEFT, 5)
+                sizer.Add(sizer_row, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 5)
+        # Buttons
+        sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 10)
+        sizer_row_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        button_close = wx.Button(self, label="Close")
+        button_close.Bind(wx.EVT_BUTTON, lambda e: self._on_close(e))
+        button_apply = wx.Button(self, label="Apply")
+        button_apply.Bind(wx.EVT_BUTTON, lambda e: self._on_apply(e))
+        sizer_row_buttons.Add(button_close, 0, wx.ALIGN_CENTRE)
+        sizer_row_buttons.Add(button_apply, 0, wx.ALIGN_CENTRE | wx.LEFT, 5)
+        sizer.Add(sizer_row_buttons, 0, wx.ALIGN_CENTRE | wx.TOP | wx.BOTTOM, 5)
+        # Further event handling
+        cockpit.gui.EvtEmitter(self, "soft safety limit").Bind(cockpit.gui.EVT_COCKPIT, lambda e: self._on_limit_soft_change(e))
+        # Finalise layout
+        self.SetSizer(sizer)
+        self.DoLayoutAdaptation()
+
+    def _update_scrollbar(self, scrollbar, value):
+        scrollbar.SetPosition(value)
+
+    def _on_focus_kill(self, scrollbar, value):
+        self._update_scrollbar(scrollbar, value)
+        e.Skip()
+
+    def _on_close(self, e):
+        self.Close()
+
+    def _on_apply(self, e):
+        # Verify that the ranges make sense
+        makeSense = True
+        values = [sb.GetThumbPosition() for sb in self._scrollbars]
+        for axis_index, (min, max) in enumerate(zip(values[::2], values[1::2])):
+            if min > max:
+                makeSense = False
+                print("Mismatch between minimum and maximum limits for axis", ("X", "Y", "Z")[axis_index])
+                break
+        if makeSense:
+            # Set the limits all at once
+            for axis_index, (min, max) in enumerate(zip(values[::2], values[1::2])):
+                cockpit.interfaces.stageMover.setSoftMin(axis_index, min)
+                cockpit.interfaces.stageMover.setSoftMax(axis_index, max)
+            # Close the dialog
+            self.Close()
+
+    def _on_limit_soft_change(self, e):
+        # Unpack event data
+        axis, value, isMax = e.EventData[:3]
+        # Update both respective scrollbar and textctrl
+        index = axis * 2 + int(isMax)
+        self._scrollbars[index].SetThumbPosition(value)
+        self._textctrls[index].SetValue("{:g}".format(value))
 
 
 class TouchScreenWindow(wx.Frame):

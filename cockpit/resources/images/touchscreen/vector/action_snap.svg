@@ -5,40 +5,68 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   id="SVGRoot"
-   version="1.1"
-   viewBox="0 0 24 24"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="action_snap.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   width="24"
    height="24"
-   width="24">
+   viewBox="0 0 24 24"
+   version="1.1"
+   id="SVGRoot">
   <title
      id="title857">action_snap</title>
   <defs
-     id="defs1410">
-    <marker
-       style="overflow:visible;"
-       id="Arrow1Lend"
-       refX="0.0"
-       refY="0.0"
-       orient="auto">
-      <path
-         transform="scale(0.8) rotate(180) translate(12.5,0)"
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;"
-         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
-         id="path2740" />
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="Arrow1Lstart"
-       refX="0.0"
-       refY="0.0"
-       orient="auto">
-      <path
-         transform="scale(0.8) translate(12.5,0)"
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt"
-         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
-         id="path2737" />
-    </marker>
-  </defs>
+     id="defs1410" />
+  <sodipodi:namedview
+     inkscape:guide-bbox="true"
+     showguides="true"
+     inkscape:window-maximized="0"
+     inkscape:window-y="26"
+     inkscape:window-x="169"
+     inkscape:window-height="967"
+     inkscape:window-width="1375"
+     showgrid="true"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="px"
+     inkscape:cy="19.080439"
+     inkscape:cx="4.5322396"
+     inkscape:zoom="16"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base">
+    <inkscape:grid
+       id="grid1984"
+       type="xygrid" />
+    <sodipodi:guide
+       id="guide1986"
+       orientation="1,0"
+       position="2,12" />
+    <sodipodi:guide
+       id="guide1988"
+       orientation="1,0"
+       position="22,12" />
+    <sodipodi:guide
+       id="guide1990"
+       orientation="0,-1"
+       position="12,22" />
+    <sodipodi:guide
+       id="guide1992"
+       orientation="0,-1"
+       position="12,2" />
+    <sodipodi:guide
+       id="guide1994"
+       orientation="1,0"
+       position="12,12" />
+    <sodipodi:guide
+       id="guide1996"
+       orientation="0,-1"
+       position="12,12" />
+  </sodipodi:namedview>
   <metadata
      id="metadata1413">
     <rdf:RDF>
@@ -52,14 +80,20 @@
     </rdf:RDF>
   </metadata>
   <g
-     id="layer1">
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
     <path
-       d="M 2.5 4.5 L 2.5 21.5 L 21.5 21.5 L 21.5 4.5 L 2.5 4.5 z M 12 7 A 6 6 0 0 1 18 13 A 6 6 0 0 1 12 19 A 6 6 0 0 1 6 13 A 6 6 0 0 1 12 7 z "
-       style="fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1;fill-opacity:1"
-       id="path3021" />
+       d="M 2 2 L 2 22 L 22 22 L 22 2 L 2 2 z M 11.90625 5 A 7 7 0 0 1 12 5 A 7 7 0 0 1 19 12 A 7 7 0 0 1 12 19 A 7 7 0 0 1 5 12 A 7 7 0 0 1 11.90625 5 z "
+       style="fill:#22b0d3;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;fill-opacity:1"
+       id="rect891" />
     <path
-       id="path3030"
-       d="M 7,2.5 H 17 V 5 H 7 Z"
-       style="fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1;fill-opacity:1" />
+       id="path898"
+       d="m 9,7 v 10 l 9,-5 z"
+       style="fill:#22d35d;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1" />
   </g>
+  <inkscape:templateinfo>
+    <inkscape:name>danny-icons</inkscape:name>
+    <inkscape:date>2020-05-01</inkscape:date>
+  </inkscape:templateinfo>
 </svg>
