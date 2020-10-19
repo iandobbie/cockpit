@@ -5,7 +5,7 @@ files = [p for p in Path("./vector").iterdir() if p.is_file()]
 
 actions = ""
 for file in files:
-    actions += "file-open:{:s}; export-filename:raster_x32\\{:s}.png; export-dpi:128; export-do;\n".format(str(file), file.stem)
+    actions += "file-open:{:s}; export-filename:raster\\{:s}.png; export-dpi:96; export-do;\n".format(str(file), file.stem)
 
 process = Popen([
     "inkscape",
