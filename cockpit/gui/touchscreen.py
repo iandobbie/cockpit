@@ -44,14 +44,34 @@ _VIEWPANEL_SIZE = wx.Size(250, 250)
 VarCtrlContCmdEvt, EVT_VAR_CTRL_CONT_COMMAND_EVENT = wx.lib.newevent.NewCommandEvent()
 
 
+class MouseEventFilter(wx.EventFilter):
+    def __init__(self, tlp, callback):
+        super().__init__()
+        self._tlp = tlp
+        self._callback = callback
+        self._exceptions = set()
+
+    def FilterEvent(self, e):
+        if (e.GetEventType() == wx.EVT_LEFT_DOWN.typeId and
+            e.GetEventObject().GetTopLevelParent() == self._tlp and
+            e.GetEventObject() not in self._exceptions):
+            self._callback(e)
+            return self.Event_Processed
+        else:
+            return self.Event_Skip
+
+    def add_exception(self, obj):
+        self._exceptions.add(obj)
+
+
 class IconButton(wx.ToggleButton):
-    def __init__(self, parent, icon, callback, toggleable=False, icon_pressed=None, tooltip="", rows=1, cols=1, **kwargs):
+    def __init__(self, parent, icon, callback, toggleable=False, icon_pressed=None, helptext="", rows=1, cols=1, **kwargs):
         super().__init__(parent, **kwargs)
         self.icon = icon
         self.icon_pressed = icon_pressed
         self.callback = callback
         self.toggleable = toggleable
-        self._tooltip = tooltip
+        self.helptext = helptext
         self._rows = rows
         self._cols = cols
         self.timer = wx.Timer(self)
@@ -65,7 +85,6 @@ class IconButton(wx.ToggleButton):
         if self.icon_pressed:
             image = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, self.icon_pressed))
             self.SetBitmapPressed(image.ConvertToBitmap())
-        self.SetToolTip(self._tooltip)
         self.Bind(wx.EVT_TOGGLEBUTTON, lambda e: self._visual_feedback(e))
         self.Bind(wx.EVT_TIMER, lambda e: self._on_timer(e))
 
@@ -80,13 +99,13 @@ class IconButton(wx.ToggleButton):
         if not self.toggleable:
             self.SetValue(False)
 
-
 class ActionsPanel(wx.Panel):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
         self._sel_obj = None
         self._sel_cam = None
         self._sel_mar = None
+        self._mouse_event_filter = MouseEventFilter(self.GetTopLevelParent(), self._cb_help_evt)
         self._set_properties()
         self._do_layout()
 
@@ -169,15 +188,15 @@ class ActionsPanel(wx.Panel):
         # Button grid
         sizer_grid = wx.GridBagSizer(vgap=3, hgap=3)
         sizer_grid.AddMany((
-            (IconButton(self, "touchscreen/raster/action_mosaic.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster/action_mosaic.png", tooltip="Start the mosaic."), wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_centre.png", lambda e: self._cb_centre(e), tooltip="Centre the view on the crosshair."), wx.GBPosition(0, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_erase.png", lambda e: self._cb_erase(e), tooltip="Erase the tile pointed by the crosshair."), wx.GBPosition(0, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_experiment.png", lambda e: self._cb_experiment(e), tooltip="Setup and perform an experiment."), wx.GBPosition(0, 3), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_marker.png", lambda e: self._cb_marker(e), tooltip="Place a marker."), wx.GBPosition(0, 4), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_snap.png", lambda e: self._cb_snap(e), tooltip="Take an image with all active cameras."), wx.GBPosition(1, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_live.png", lambda e: self._cb_live(e), tooltip="Start or stop continuous image capture with all active cameras."), wx.GBPosition(1, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_help.png", lambda e: self._cb_help(e), tooltip="Show help."), wx.GBPosition(1, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/action_abort.png", lambda e: self._cb_abort(e), cols=2, tooltip="Abort the current action."), wx.GBPosition(1, 3), wx.GBSpan(1, 2), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_mosaic.png", lambda e: self._cb_mosaic(e), toggleable=True, icon_pressed="touchscreen/raster/action_mosaic.png", helptext="Start the mosaic."), wx.GBPosition(0, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_centre.png", lambda e: self._cb_centre(e), helptext="Centre the view on the crosshair."), wx.GBPosition(0, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_erase.png", lambda e: self._cb_erase(e), helptext="Erase the tile pointed by the crosshair."), wx.GBPosition(0, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_experiment.png", lambda e: self._cb_experiment(e), helptext="Setup and perform an experiment."), wx.GBPosition(0, 3), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_marker.png", lambda e: self._cb_marker(e), helptext="Place a marker."), wx.GBPosition(0, 4), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_snap.png", lambda e: self._cb_snap(e), helptext="Take an image with all active cameras."), wx.GBPosition(1, 0), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_live.png", lambda e: self._cb_live(e), helptext="Start or stop continuous image capture with all active cameras."), wx.GBPosition(1, 1), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_help.png", lambda e: self._cb_help(e), toggleable=True, helptext="Show help."), wx.GBPosition(1, 2), wx.GBSpan(1, 1), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/action_abort.png", lambda e: self._cb_abort(e), cols=2, helptext="Abort the current action."), wx.GBPosition(1, 3), wx.GBSpan(1, 2), wx.ALIGN_CENTER),
         ))
         sizer.Add(
             sizer_grid,
@@ -220,7 +239,19 @@ class ActionsPanel(wx.Panel):
         pass
 
     def _cb_help(self, e):
-        pass
+        toggled = e.GetEventObject().GetValue()
+        if toggled:
+            self.GetTopLevelParent().SetCursor(wx.Cursor(wx.CURSOR_QUESTION_ARROW))
+            self._mouse_event_filter.add_exception(e.GetEventObject())
+            wx.App.AddFilter(self._mouse_event_filter)
+        else:
+            self.GetTopLevelParent().SetCursor(wx.NullCursor)
+            wx.App.RemoveFilter(self._mouse_event_filter)
+
+    def _cb_help_evt(self, e):
+        if e.GetEventObject().helptext:
+            tip = wx.TipWindow(e.GetEventObject(), e.GetEventObject().helptext)
+
 
     def _cb_abort(self, e):
         pass
@@ -815,11 +846,11 @@ class StageControlXY(wx.Panel):
         # Buttons
         sizer_buttons = wx.GridSizer(5, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen/raster/stage_move_left.png", lambda e: self._cb_move_left(e), tooltip="Move one step left."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_up.png", lambda e: self._cb_move_up(e), tooltip="Move one step up."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_down.png", lambda e: self._cb_move_down(e), tooltip="Move one step down."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_right.png", lambda e: self._cb_move_right(e), tooltip="Move one step right."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_tiles.png", lambda e: self._cb_tiles(e), tooltip="Show mosaic tiles."), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster/stage_move_left.png", lambda e: self._cb_move_left(e), helptext="Move one step left."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_up.png", lambda e: self._cb_move_up(e), helptext="Move one step up."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_down.png", lambda e: self._cb_move_down(e), helptext="Move one step down."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_right.png", lambda e: self._cb_move_right(e), helptext="Move one step right."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_tiles.png", lambda e: self._cb_tiles(e), helptext="Show mosaic tiles."), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
@@ -876,16 +907,16 @@ class StageControlZ(wx.Panel):
         # Buttons
         sizer_buttons = wx.GridSizer(5, wx.Size(3, 3))
         sizer_buttons.AddMany((
-            (IconButton(self, "touchscreen/raster/stage_move_up.png", lambda e: self._cb_move_up(e), tooltip="Move one step up."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_save_top.png", lambda e: self._cb_save_top(e), tooltip="Save the current position as the top soft limit."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_top.png", lambda e: self._cb_move_top(e), tooltip="Move to the top soft limit."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_centre.png", lambda e: self._cb_move_centre(e), tooltip="Move to the centre of the top and bottom soft limits."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_recentre.png", lambda e: self._cb_recentre(e), tooltip="Recentre all fine stages and then move the course stage so that the focus plane remains the same."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_down.png", lambda e: self._cb_move_down(e), tooltip="Move one step down."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_save_bottom.png", lambda e: self._cb_save_bottom(e), tooltip="Save the current position as the bottom soft limit."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move_bottom.png", lambda e: self._cb_move_bottom(e), tooltip="Move to the bottom soft limit."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_touchdown.png", lambda e: self._cb_touchdown(e), tooltip="Move to the specimen position, as defined in the configuration file."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_switch.png", lambda e: self._cb_switch(e), tooltip="Switch to the next stage."), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster/stage_move_up.png", lambda e: self._cb_move_up(e), helptext="Move one step up."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_save_top.png", lambda e: self._cb_save_top(e), helptext="Save the current position as the top soft limit."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_top.png", lambda e: self._cb_move_top(e), helptext="Move to the top soft limit."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_centre.png", lambda e: self._cb_move_centre(e), helptext="Move to the centre of the top and bottom soft limits."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_recentre.png", lambda e: self._cb_recentre(e), helptext="Recentre all fine stages and then move the course stage so that the focus plane remains the same."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_down.png", lambda e: self._cb_move_down(e), helptext="Move one step down."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_save_bottom.png", lambda e: self._cb_save_bottom(e), helptext="Save the current position as the bottom soft limit."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move_bottom.png", lambda e: self._cb_move_bottom(e), helptext="Move to the bottom soft limit."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_touchdown.png", lambda e: self._cb_touchdown(e), helptext="Move to the specimen position, as defined in the configuration file."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_switch.png", lambda e: self._cb_switch(e), helptext="Switch to the next stage."), wx.ALIGN_CENTER)
         ))
         sizer.Add(sizer_buttons, 0, wx.EXPAND | wx.TOP, 5)
         # Finalise layout
@@ -940,8 +971,8 @@ class StageControlCommon(wx.Panel):
         # Buttons
         sizer = wx.GridSizer(5, wx.Size(3, 3))
         sizer.AddMany((
-            (IconButton(self, "touchscreen/raster/stage_safeties.png", lambda e: self._cb_safeties(e), tooltip="Change the XYZ soft limits."), wx.ALIGN_CENTER),
-            (IconButton(self, "touchscreen/raster/stage_move.png", lambda e: self._cb_move(e), tooltip="Move to a specific XYZ location."), wx.ALIGN_CENTER)
+            (IconButton(self, "touchscreen/raster/stage_safeties.png", lambda e: self._cb_safeties(e), helptext="Change the XYZ soft limits."), wx.ALIGN_CENTER),
+            (IconButton(self, "touchscreen/raster/stage_move.png", lambda e: self._cb_move(e), helptext="Move to a specific XYZ location."), wx.ALIGN_CENTER)
         ))
         # Finalise layout
         self.SetSizer(sizer)
@@ -1210,4 +1241,4 @@ class TouchScreenWindow(wx.Frame):
 
 
 def makeWindow(parent):
-    TSwindow = TouchScreenWindow(parent, title="Touch Screen view")
+    TSWindow = TouchScreenWindow(parent, title="Touch Screen view")
