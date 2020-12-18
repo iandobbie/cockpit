@@ -780,7 +780,7 @@ class CamerasPanelEntry(wx.Panel):
                 wx.ALIGN_CENTER,
             )
             sizer_row1.Add(gain_ctrl, 1, wx.ALIGN_CENTER | wx.LEFT, 5)
-        sizer.Add(sizer_row1, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+            sizer.Add(sizer_row1, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         # Third row: readout and settings
         sizer_row2 = wx.BoxSizer(wx.HORIZONTAL)
         readout_choice = wx.Choice(self, choices=[])
