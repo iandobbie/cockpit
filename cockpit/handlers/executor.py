@@ -517,15 +517,23 @@ class ExecutorDebugWindow(wx.Frame):
                 anaSizer.Add(control, 0, wx.RIGHT, 20)
             #add button to display plot of last experiment dsp output
             #should look like an oscilloscope display
-            from cockpit.experiment import experiment
             btn = wx.Button(self, wx.ID_ANY, "Plot actions")
             btn.Bind(wx.EVT_BUTTON,
-                     lambda evt: experiment.lastExperiment.table.plotProfile() )
+                     lambda evt: self.displayActionPlot())
             anaSizer.Add(btn,0,wx.RIGHT,20)
             mainSizer.Add(anaSizer)
 
         panel.SetSizerAndFit(mainSizer)
         self.SetClientSize(panel.GetSize())
+
+    #fucntion to only call action plot if there is an old action table to plot.
+    def displayActionPlot(self):
+        from cockpit.experiment import experiment
+        
+        if (experiment.lastExperiment):
+            experiment.lastExperiment.table.plotProfile()
+        else:
+            print("No action table to display")
 
 
 ## A class for a handler that can perform actions in an experiment,
