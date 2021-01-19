@@ -64,6 +64,7 @@ import wx
 import functools
 
 
+
 ## This handler is responsible for executing portions of experiments.
 class ExecutorHandler(deviceHandler.DeviceHandler):
     ## callbacks must include the following:
@@ -514,6 +515,13 @@ class ExecutorDebugWindow(wx.Frame):
                                 # If dealing with ADUs, float should perhaps be int,
                                 # but rely on device to set correct type.
                 anaSizer.Add(control, 0, wx.RIGHT, 20)
+            #add button to display plot of last experiment dsp output
+            #should look like an oscilloscope display
+            from cockpit.experiment import experiment
+            btn = wx.Button(self, wx.ID_ANY, "Plot actions")
+            btn.Bind(wx.EVT_BUTTON,
+                     lambda evt: experiment.lastExperiment.table.plotProfile() )
+            anaSizer.Add(btn,0,wx.RIGHT,20)
             mainSizer.Add(anaSizer)
 
         panel.SetSizerAndFit(mainSizer)
