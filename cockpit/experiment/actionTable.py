@@ -51,6 +51,7 @@
 
 
 import decimal
+import matplotlib.pyplot as plt
 
 ## This class represents the actions performed during an experiment.
 # Each action has a timestamp and the parameters for the action to be performed.
@@ -183,6 +184,46 @@ class ActionTable:
                     result += '%8.2f % 20s % 20s' % (time, handler.name, action)
                     result += '\n'
         return result
+
+
+    def plotProfile(self, handlers=None):
+        """Plots the timing profile of the actions, optionally only for the specified handler(s)"""
+        # We first construct a more usable table
+        table = {}
+
+        def action_type(action):
+            if isinstance(action, (float, int)):
+                return 'analogue'
+            if isinstance(action, bool):
+                return 'digital'
+
+        for event in self.actions:
+            if event is None:
+                continue
+            time, handler, action = event
+            if handlers is None or handler in handlers:
+                if handler.name in table:  # The handler already exists in the table
+                    table[handler.name][0].append(time)
+                    table[handler.name][1].append(action)
+                else:
+                    table[handler.name] = ([time], [action], action_type(action))
+
+        # Generate the actual plot
+        plot_width = self.getFirstAndLastActionTimes()[1]
+        fig, axs = plt.subplots(len(table), 1, sharex=True)
+        fig.subplots_adjust(hspace=0)  # Remove horizontal space between axes
+        for i, (key, data) in enumerate(table.items()):
+            if data[2] == 'analogue':
+                axs[i].plot(data[0], data[1])
+            else:
+                axs[i].step(data[0], data[1], where='post')
+                axs[i].set_yticks([0, 1])
+                axs[i].set_ylim(-.1, 1.1)
+            axs[i].set_xlabel('Time', fontsize=12)
+            axs[i].set_ylabel(key, fontsize=12)
+            axs[i].grid(True, which='both', axis='x')
+
+        plt.show(block=False)
 
 
     ## Cast to a string -- generate a textual description of our actions.
