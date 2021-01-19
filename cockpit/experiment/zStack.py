@@ -74,9 +74,14 @@ class ZStackExperiment(experiment.Experiment):
             # Non-2D experiment; tack on an extra image to hit the top of
             # the volume.
             numZSlices += 1
+#        if (self.zPositioner.digital):
+#            self.zPositioner.setupDigital(self.zStart,self.sliceHeight,numZSlices)
+#        else: 
+         
         for zIndex in range(numZSlices):
             # Move to the next position, then wait for the stage to 
             # stabilize.
+            #find if this is a digital axis
             zTarget = self.zStart + self.sliceHeight * zIndex
             motionTime, stabilizationTime = 0, 0
             if prevAltitude is not None:
