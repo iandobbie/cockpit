@@ -48,7 +48,6 @@ import typing
 
 import Pyro4
 import wx
-import time
 import decimal
 from cockpit import events
 from cockpit.devices import device
