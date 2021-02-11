@@ -66,20 +66,28 @@ class PositionerHandler(deviceHandler.DeviceHandler):
     # Additionally, if the device is to be used in experiments, it must have:
     # - getMovementTime(axis, start, end): Get the amount of time it takes to 
     #   move from start to end and then stabilize.
+    # - setupDigitalStack(zstart, sliceheight,numSlices): setup up a digital
+    #   stack with provide parameters which triggers moves with a ttl
+    #   signal
     # \param axis A numerical indicator of the axis (0 = X, 1 = Y, 2 = Z).
     # \param hardLimits A (minPosition, maxPosition) tuple indicating
     #        the device's hard motion limits.
     # \param softLimits Default soft motion limits for the device. Defaults
     #        to the hard limits.
+    # \param trigHandler the handler for digitial triggers stacks
+    # \param trigLine the line for digitial triggers stacks
+    
 
     ## Shortcuts to decorators defined in parent class.
     reset_cache = deviceHandler.DeviceHandler.reset_cache
     cached = deviceHandler.DeviceHandler.cached
 
     def __init__(self, name, groupName, isEligibleForExperiments, callbacks, 
-            axis, hardLimits, softLimits = None):
+                 axis, hardLimits, softLimits = None, trigHandler = None,
+                 trigLine = None):
         super().__init__(name, groupName, isEligibleForExperiments, callbacks,
                          depot.STAGE_POSITIONER)
+        self.digital=True
         self.axis = axis
         self.hardLimits = hardLimits
         if softLimits is None:
@@ -149,6 +157,12 @@ class PositionerHandler(deviceHandler.DeviceHandler):
             return self.getDeltaMovementTime(end - start)
         raise RuntimeError("Called getMovementTime on non-experiment-eligible positioner [%s]" % self.name)
 
+    def setupDigitalStack(self, zStart,sliceHeight,numSlices):
+        if self.digital:
+            return self.callbacks['setupDigitalStack'](zStart,sliceHeight,
+                                                        numSlices)
+        else:
+            return 
 
     @cached
     def getDeltaMovementTime(self, delta):

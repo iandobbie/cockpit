@@ -425,9 +425,14 @@ class _MicroscopeStageAxis:
             device per µm.
         stage_name: the name of the stage device, used to construct
             the handler name.
+        movement_time: a tuple that indicates time to move the stage 
+            followed by a time for the stage to settle. 
+        digital_stack: a boolean that indicates if this axis can perform
+            stacks with a digital trigger
     """
     def __init__(self, axis, index: int, units_per_micron: float,
-                 stage_name: str, movement_time: str) -> None:
+                 stage_name: str, movement_time: str,
+                 digital_stack: bool, trigHandler, trigLine) -> None:
         self._axis = axis
         self._units_per_micron = units_per_micron
         self._name = "%d %s" % (index, stage_name)
@@ -435,6 +440,7 @@ class _MicroscopeStageAxis:
             move,settle=movement_time.split()
             self.movement_time=(decimal.Decimal(move),
                                 decimal.Decimal(settle))
+        self.digital_stack = digital_stack
 
         limits = AxisLimits(self._axis.limits.lower / self._units_per_micron,
                             self._axis.limits.upper / self._units_per_micron)
@@ -454,11 +460,14 @@ class _MicroscopeStageAxis:
             'getPosition' : self.getPosition,
             'moveAbsolute' : self.moveAbsolute,
             'moveRelative' : self.moveRelative,
+            'setupDigitalStack': self.setupDigitalStack,
         }
 
         self._handler = PositionerHandler(self._name, group_name,
                                           eligible_for_experiments, callbacks,
-                                          index, limits)
+                                          index, limits,
+                                          trigHandler = trigHandler,
+                                          trigLine = trigLine)
 
     def getHandler(self) -> PositionerHandler:
         return self._handler
@@ -494,6 +503,24 @@ class _MicroscopeStageAxis:
         self._axis.move_by(delta * self._units_per_micron)
         events.publish(events.STAGE_MOVER, index)
         events.publish(events.STAGE_STOPPED, self._name)
+
+    def setupDigitalStack(self, zStart,sliceHeight,numSlices):
+        """Setup a digitial stack """
+        # This function needs to:
+        # 1) move to positon zStart
+        # 2) setup the axis to move by sliceHeight on a digital trigger
+        # 3) reset after numSlices repeats?
+        #
+        zStart=zStart*self._units_per_micron
+        sliceHeight=sliceHeight*self._units_per_micron
+        self._axis.move_to(zStart)
+        #should probably include motion indicators, but we dont have index
+        #events.publish(events.STAGE_MOVER, index)
+        #events.publish(events.STAGE_STOPPED, self._name)
+        print ("now call microscope to setup digital", zStart,
+               sliceHeight, numSlices)
+        #self._axis.setupDigitialStack(zStart,
+        #(sliceHeight * self._units_per_micron), numSlices)
 
 
 class MicroscopeStage(MicroscopeBase):
@@ -587,9 +614,26 @@ class MicroscopeStage(MicroscopeBase):
                 self.movement_time=None
             else:
                 self.movement_time=self.config['movement_time']
+
+            if 'digital_stack ' not in self.config:
+                self.digital = False
+            else:
+                self.digital = True
+
+            trigsource = self.config.get('triggersource', None)
+            trigline = self.config.get('triggerline', None)
+            if trigsource:
+                trighandler = depot.getHandler(trigsource, depot.EXECUTOR)
+            else:
+                trighandler = None
+          
+                
             self._axes.append(_MicroscopeStageAxis(their_axis, cockpit_index,
                                                    units_per_micron, self.name,
-                                                   self.movement_time))
+                                                   self.movement_time,
+                                                   self.digital,
+                                                   trigHandler = trighandler,
+                                                   trigLine = trigline))
             handled_axis_names.add(their_name)
 
         # Ensure that there isn't a non handled axis left behind.

@@ -65,6 +65,7 @@ EXPERIMENT_NAME = 'Z-stack'
 class ZStackExperiment(experiment.Experiment):
     ## Create the ActionTable needed to run the experiment. We simply move to 
     # each Z-slice in turn, take an image, then move to the next.
+    @property
     def generateActions(self):
         table = actionTable.ActionTable()
         curTime = 0
@@ -74,10 +75,11 @@ class ZStackExperiment(experiment.Experiment):
             # Non-2D experiment; tack on an extra image to hit the top of
             # the volume.
             numZSlices += 1
-#        if (self.zPositioner.digital):
-#            self.zPositioner.setupDigital(self.zStart,self.sliceHeight,numZSlices)
-#        else: 
-         
+        if (self.zPositioner.digital):
+            #call the zPositioner to setup the digital Z stack.
+            stack=self.zPositioner.setupDigitalStack(self.zStart,self.sliceHeight,
+                                          numZSlices)
+           
         for zIndex in range(numZSlices):
             # Move to the next position, then wait for the stage to 
             # stabilize.
@@ -87,6 +89,8 @@ class ZStackExperiment(experiment.Experiment):
             if prevAltitude is not None:
                 motionTime, stabilizationTime = self.zPositioner.getMovementTime(prevAltitude, zTarget)
             curTime += motionTime
+            # digitial Z stack devices should add a pulse here and not
+            #an analogue voltage. 
             table.addAction(curTime, self.zPositioner, zTarget)
             curTime += stabilizationTime
             prevAltitude = zTarget
