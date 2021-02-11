@@ -65,6 +65,7 @@ EXPERIMENT_NAME = 'Z-stack'
 class ZStackExperiment(experiment.Experiment):
     ## Create the ActionTable needed to run the experiment. We simply move to 
     # each Z-slice in turn, take an image, then move to the next.
+    @property
     def generateActions(self):
         table = actionTable.ActionTable()
         curTime = 0
@@ -76,9 +77,8 @@ class ZStackExperiment(experiment.Experiment):
             numZSlices += 1
         if (self.zPositioner.digital):
             #call the zPositioner to setup the digital Z stack.
-            stack=self.zPositioner.setupDigitalStack(self.zStart,
-                                                     self.sliceHeight,
-                                                     numZSlices)
+            stack=self.zPositioner.setupDigitalStack(self.zStart,self.sliceHeight,
+                                          numZSlices)
            
         for zIndex in range(numZSlices):
             # Move to the next position, then wait for the stage to 
