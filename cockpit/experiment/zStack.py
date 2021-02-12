@@ -65,7 +65,6 @@ EXPERIMENT_NAME = 'Z-stack'
 class ZStackExperiment(experiment.Experiment):
     ## Create the ActionTable needed to run the experiment. We simply move to 
     # each Z-slice in turn, take an image, then move to the next.
-    @property
     def generateActions(self):
         table = actionTable.ActionTable()
         curTime = 0
@@ -122,7 +121,6 @@ class ZStackExperiment(experiment.Experiment):
             # This works for analouge, the assumption is the remote does this
             # in digital triggering
             table.addAction(curTime, self.zPositioner, self.zStart)
-
         # Hold flat for the stabilization time, and any time needed for
         # the cameras to be ready. Only needed if we're doing multiple
         # reps, so we can proceed immediately to the next one.
