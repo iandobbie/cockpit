@@ -506,22 +506,19 @@ class _MicroscopeStageAxis:
 
     def setupDigitalStack(self, zStart,sliceHeight,numSlices):
         """Setup a digitial stack """
-        # This function needs to:
+        # The remote function needs to:
         # 1) move to positon zStart
         # 2) setup the axis to move by sliceHeight on a digital trigger
-        # 3) reset after numSlices repeats?
+        # 3) reset after numSlices repeats
         #
         zStart=zStart*self._units_per_micron
         sliceHeight=sliceHeight*self._units_per_micron
-        self._axis.move_to(zStart)
-        #should probably include motion indicators, but we dont have index
-        #events.publish(events.STAGE_MOVER, index)
-        #events.publish(events.STAGE_STOPPED, self._name)
         print ("now call microscope to setup digital", zStart,
                sliceHeight, numSlices)
-        #self._axis.setupDigitialStack(zStart,
-        #(sliceHeight * self._units_per_micron), numSlices)
-
+        status=self._axis.setupDigitalStack(zStart, sliceHeight, numSlices)
+        if status == 0:
+            print ("digital stack not avalibale")
+        return(status)
 
 class MicroscopeStage(MicroscopeBase):
     """Device class for a Python microscope StageDevice.
@@ -615,7 +612,7 @@ class MicroscopeStage(MicroscopeBase):
             else:
                 self.movement_time=self.config['movement_time']
 
-            if 'digital_stack ' not in self.config:
+            if 'digital_stack' not in self.config:
                 self.digital = False
             else:
                 self.digital = True

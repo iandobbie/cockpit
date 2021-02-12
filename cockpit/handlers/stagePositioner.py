@@ -87,7 +87,13 @@ class PositionerHandler(deviceHandler.DeviceHandler):
                  trigLine = None):
         super().__init__(name, groupName, isEligibleForExperiments, callbacks,
                          depot.STAGE_POSITIONER)
-        self.digital=True
+        if (trigHandler is not None):
+            #we rae digitally triggerable so set digital flag and register
+            # digitial control line
+            self.digital=True
+            trigHandler.registerDigital(self, trigLine)
+        else:
+            self.digital=False
         self.axis = axis
         self.hardLimits = hardLimits
         if softLimits is None:
