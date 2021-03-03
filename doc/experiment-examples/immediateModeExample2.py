@@ -145,15 +145,21 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         # Note: that if you try to wait for an image
         # that will never arrive (e.g. for the wrong camera name) then your
         # script will get stuck at this point.
-        eventName = 'new image %s' % activeCams[0].name
-        image, timestamp = events.executeAndWaitFor(eventName,
-                cockpit.interfaces.imager.takeImage, shouldBlock = True)
+        CAMERA_TIMEOUT = 2
 
-        # Get the min, max, median, and standard deviation of the image
-        imageMin = image.min()
-        imageMax = image.max()
-        imageMedian = numpy.median(image)
-        imageStd = numpy.std(image)
+        for camera in activeCams:
+            takeimage = depot.getHandlerWithName(f"{camera.name} imager").takeImage
+            image = events.executeAndWaitForOrTimeout(
+                events.NEW_IMAGE % camera.name, takeimage, camera.getExposureTime() / 1000 + CAMERA_TIMEOUT,
+            )
+
+            if image is not None:
+                image = image[0]
+            # Get the min, max, median, and standard deviation of the image
+            imageMin = image.min()
+            imageMax = image.max()
+            imageMedian = numpy.median(image)
+            imageStd = numpy.std(image)
 
         print ("Image stats:", imageMin, imageMax, imageMedian, imageStd)
 
