@@ -1,4 +1,4 @@
-.. Copyright (C) 2020 David Miguel Susano Pinto <david.pinto@bioch.ox.ac.uk>
+.. Copyright (C) 2020 David Miguel Susano Pinto <david.pinto@bioch.ox.ac.uk> (C) 2021 Martin Hailstone
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
    Version 1.3 or any later version published by the Free Software
@@ -10,11 +10,21 @@
 Configuration
 *************
 
-Cockpit is based on `microscope <https://www.micron.ox.ac.uk/software/microscope/>`_, which handles the hardware level device communication. This file is concerned with the configuration of cockpit proper: it assumes you already have a working microscope ``device_server``. For more information on setting up a ``device_server`` see `here <https://www.micron.ox.ac.uk/software/microscope/doc/architecture/device-server.html>`_
+Cockpit is based on `microscope <https://www.micron.ox.ac.uk/software/microscope/>`_, which handles the hardware level device communication. This page is concerned with the configuration of cockpit proper: it assumes you already have a working microscope ``device_server``. For more information on setting up a ``device_server`` see `here <https://www.micron.ox.ac.uk/software/microscope/doc/architecture/device-server.html>`_
 
-Defaults
---------
-If you've just installed cockpit through pip and run it, you'll be running it without these configuration files. You will need to make your own, but it is probably easiest to use someone elses config files as a starting point. Example configuration files can be found `here <https://github.com/MicronOxford/configs>`_. It is possible to specify just a depot file, provided it is found in the correct location:
+There are two parts to configuring cockpit. The :ref:`configuration
+of cockpit proper <cockpit-config>` that covers most of cockpit
+options, and the :ref:`depot configuration <depot-config>` which lists
+all devices that cockpit will have control over.
+
+Configuring Cockpit for the first time
+======================================
+
+If you've just installed cockpit through ``pip`` and run it, you'll be running it without these configuration files. You will need to make your own, but it is probably easiest to use someone else's config files as a starting point. Example configuration files can be found `here <https://github.com/MicronOxford/configs>`_. It is possible to specify just a depot file, provided it is found in the correct :ref:`location <_default_config_locations>`.
+
+- Create a  ``depot.conf`` :ref:`file <depot-config>`. It is possible to specify just a depot file, provided it is found in the correct location
+- Verify that the depot file is working correctly, and devices are connected with ``python -m cockpit.status``
+- Further configuration of Cockpit via :ref:`INI file <cockpit-config>`
 
 .. _default_config_locations:
 
@@ -32,17 +42,6 @@ MacOS    ``/Library/Preferences/cockpit/``  ``~/Library/Application Support/cock
 Windows  ``%ProgramData%\cockpit\``         ``%LocalAppData%\cockpit\``
 =======  =================================  ==========================================
 
-Configuring Cockpit Proper
-==========================
-There are two parts to configuring cockpit. The :ref:`configuration
-of cockpit proper <cockpit-config>` that covers most of cockpit
-options, and the :ref:`depot configuration <depot-config>` which lists
-all devices that cockpit will have control over.
-
-.. The userConfig stuff is not documented.  Not sure if it should be
-   documented at all, seems more like cache.  Parts of it that makes
-   sense to configure can have system-wide value, in which case should
-   be moved into cockpit config.
 
 .. _depot-config:
 
@@ -249,4 +248,15 @@ This enables users to have a configuration file that overrides
 system-wide settings, or to use command line options for one-off
 change of settings.
 
+GUI Configuration
+=====================
 
+Cockpit also generates a config.py file which caches GUI related information like the layout of windows,
+and which windows are open, for when it is next opened. It may be useful to directly edit the values here,
+if, for instance, the PyShell window is not visible on startup, but many of the values here are
+editable indirectly by e.g. arranging the windows with the mouse.
+
+.. The userConfig stuff is not documented.  Not sure if it should be
+   documented at all, seems more like cache.  Parts of it that makes
+   sense to configure can have system-wide value, in which case should
+   be moved into cockpit config.
