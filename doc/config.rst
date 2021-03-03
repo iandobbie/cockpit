@@ -14,7 +14,7 @@ Cockpit is based on `microscope <https://www.micron.ox.ac.uk/software/microscope
 
 Defaults
 --------
-If you've just installed cockpit through pip and run it, you'll be running it without these configuration files. You will need to make your own, but it is probably easiest to use someone elses config files as a starting point. Example configuration files can be found `here <https://github.com/MicronOxford/configs>`. It is possible to specify just a depot file, provided it is found in the correct location:
+If you've just installed cockpit through pip and run it, you'll be running it without these configuration files. You will need to make your own, but it is probably easiest to use someone elses config files as a starting point. Example configuration files can be found `here <https://github.com/MicronOxford/configs>`_. It is possible to specify just a depot file, provided it is found in the correct location:
 
 .. _default_config_locations:
 
