@@ -20,23 +20,23 @@ microscopes. More detailed information is available:
 
 - in the `Docs <https://www.micron.ox.ac.uk/software/cockpit/>`__
 
-Its main features are:
-----------------------
+Main Features
+--------------
 
-- **Easy to use and extend by life scientists.**  Cockpit is completely
+- **Easy to use and extend by life scientists:**  Cockpit is completely
   written in Python and meant to be extended by the user.
 
-- **Independent of the actual devices being used.**  Cockpit uses Python's
+- **Independent of the actual devices being used:**  Cockpit uses Python's
   `Microscope package <https://www.python-microscope.org>`__ to
   control the devices.  The graphical interface and experiments
   automatically adjust to the existing devices.
 
-- **Very fast device control and time precision.**  During experiments,
+- **Very fast device control and time precision:**  During experiments,
   devices are controlled via hardware signals.
 
-- **Cross Platform.**  Cockpit can run on GNU/Linux, Mac, and Windows.
+- **Cross Platform:**  Cockpit can run on GNU/Linux, Mac, and Windows.
 
-- **FOSS.** Cockpit is free and open source software, released under the GPL.
+- **FOSS:** Cockpit is free and open source software, released under the GPL.
 
 
 The User Interface
@@ -48,3 +48,11 @@ ones shown below.
 .. image:: doc/cockpit-windows.png
   :align: center	  
   :alt: Cockpit main windows
+  
+Citation
+--------
+If you find this project useful, please cite:
+
+*Microscope-Cockpit: Python-based bespoke microscopy for bio-medical science*
+Mick A Phillips, David Miguel Susano Pinto, Nicholas Hall, Julio Mateos-Langerak, Richard M Parton, Josh Titlow, Danail V Stoychev, Thomas Parks, Tiago Susano Pinto, John W Sedat, Martin J Booth, Ilan Davis, Ian M Dobbie
+bioRxiv 2021.01.18.427178; doi: `https://doi.org/10.1101/2021.01.18.427178 <https://doi.org/10.1101/2021.01.18.427178>`__
