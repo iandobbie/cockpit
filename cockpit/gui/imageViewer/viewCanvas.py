@@ -481,7 +481,10 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: 0)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse)
         self.Bind(wx.EVT_MOUSEWHEEL, self.onMouseWheel)
-        self.Bind(wx.EVT_DPI_CHANGED, self.onDPIchange)
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self.onDPIchange)
+        except AttributeError:
+            cockpit.util.logger.log.info("No EVT_DPI_CHANGED attribute")
         # Right click also creates context menu event, which will pass up
         # if unhandled. Bind it to None to prevent the main window
         # context menu being displayed after our own.
@@ -551,7 +554,6 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
     def setImage(self, newImage):
         self.imageQueue.put_nowait(newImage)
 
-
     ## Consume images out of self.imageQueue and either display them or
     # discard them. Because images can arrive very rapidly at times, we
     # want to ensure that we don't jam up -- if several images arrive while
@@ -584,7 +586,6 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             self.drawEvent.wait()
             self.drawEvent.clear()
 
-
     ## Return the blackpoint and whitepoint (i.e. the pixel values which
     # are displayed as black and white, respectively).
     def getScaling(self):
@@ -594,14 +595,12 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         else:
             return self.image.getDisplayRange()
 
-
     ## As above, but the values used to calculate them instead of the
     # absolute pixel values (e.g. (.1, .9) instead of (100, 400).
     def getRelativeScaling(self):
         return (self.blackPoint, self.whitePoint)
 
-
-    #@cockpit.util.threads.callInMainThread
+    # @cockpit.util.threads.callInMainThread
     def onPaint(self, event):
         if not self.shouldDraw:
             return
@@ -620,69 +619,74 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             return
 
         try:
-            Hist_Height=int(HISTOGRAM_HEIGHT*self.GetContentScaleFactor())
+            Hist_Height = int(HISTOGRAM_HEIGHT * self.GetContentScaleFactor())
             self.painting = True
             self.SetCurrent(self.context)
             glClear(GL_COLOR_BUFFER_BIT)
-            glViewport(0, Hist_Height,
-                       self.w, self.h - Hist_Height)
+            glViewport(0, Hist_Height, self.w, self.h - Hist_Height)
             self.image.draw(pan=(self.panX, self.panY), zoom=self.zoom)
             if self.showCrosshair:
                 self.drawCrosshair()
 
-
-            glViewport(0, 0, self.w, Hist_Height//2)
+            glViewport(0, 0, self.w, Hist_Height // 2)
             self.histogram.draw()
             glColor(0, 1, 0, 1)
 
             glViewport(0, 0, self.w, self.h)
-            glMatrixMode (GL_PROJECTION)
+            glMatrixMode(GL_PROJECTION)
             glPushMatrix()
-            glLoadIdentity ()
-            glOrtho (0, self.w, 0, self.h, 1., -1.)
-            glTranslatef(0, (Hist_Height)/2+2, 0)
+            glLoadIdentity()
+            glOrtho(0, self.w, 0, self.h, 1.0, -1.0)
+            glTranslatef(0, (Hist_Height) / 2 + 2, 0)
             try:
-                self.face.render('%d [%-10d %10d] %d' %
-                                 (self.image.dmin, self.histogram.lthresh,
-                                  self.histogram.uthresh,
-                                  self.image.dmin+self.image.dptp))
+                self.face.render(
+                    "%d [%-10d %10d] %d"
+                    % (
+                        self.image.dmin,
+                        self.histogram.lthresh,
+                        self.histogram.uthresh,
+                        self.image.dmin + self.image.dptp,
+                    )
+                )
             except:
                 pass
             glPopMatrix()
 
-            #self.drawHistogram()
+            # self.drawHistogram()
 
-            #glFlush()
+            # glFlush()
             self.SwapBuffers()
             self.drawEvent.set()
         except Exception as e:
-            print ("Error drawing view canvas:",e)
+            print("Error drawing view canvas:", e)
             traceback.print_stack()
-            #self.shouldDraw = False
+            # self.shouldDraw = False
         finally:
             self.painting = False
-
 
     @cockpit.util.threads.callInMainThread
     def drawCrosshair(self):
         glColor3f(0, 255, 255)
-        glVertexPointerf([(-1, self.zoom*self.panY), (1, self.zoom*self.panY),
-                          (self.zoom*self.panX, -1), (self.zoom*self.panX, 1)])
+        glVertexPointerf(
+            [
+                (-1, self.zoom * self.panY),
+                (1, self.zoom * self.panY),
+                (self.zoom * self.panX, -1),
+                (self.zoom * self.panX, 1),
+            ]
+        )
         glDrawArrays(GL_LINES, 0, 4)
-
 
     ## Update the size of the canvas by scaling it.
     def setSize(self, size):
         if self.imageData is not None:
-            self.w, self.h = size*self.GetContentScaleFactor()
+            self.w, self.h = size * self.GetContentScaleFactor()
         self.Refresh(0)
-
 
     def onMouse(self, event):
         if self.imageShape is None:
             return
-        self.curMouseX, self.curMouseY = (event.GetPosition() *
-                                          self.GetContentScaleFactor())
+        self.curMouseX, self.curMouseY = event.GetPosition() * self.GetContentScaleFactor()
         self.updateMouseInfo(self.curMouseX, self.curMouseY)
         if event.LeftDClick():
             # Explicitly skip EVT_LEFT_DCLICK for parent to handle.
@@ -691,11 +695,10 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         elif event.LeftDown():
             # Started dragging
             self.mouseDragX, self.mouseDragY = self.curMouseX, self.curMouseY
-            blackPointX = 0.5 * (1+self.histogram.data2gl(self.histogram.lthresh)) * self.w
-            whitePointX = 0.5 * (1+self.histogram.data2gl(self.histogram.uthresh)) * self.w
+            blackPointX = 0.5 * (1 + self.histogram.data2gl(self.histogram.lthresh)) * self.w
+            whitePointX = 0.5 * (1 + self.histogram.data2gl(self.histogram.uthresh)) * self.w
             # Set drag mode based on current window position
-            if self.h - self.curMouseY >= (HISTOGRAM_HEIGHT *
-                                           self.GetContentScaleFactor()* 2):
+            if self.h - self.curMouseY >= (HISTOGRAM_HEIGHT * self.GetContentScaleFactor() * 2):
                 self.dragMode = DRAG_CANVAS
             elif abs(self.curMouseX - blackPointX) < abs(self.curMouseX - whitePointX):
                 self.dragMode = DRAG_BLACKPOINT
@@ -707,8 +710,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                 # Pan view about.
                 # Window coordinates are upside-down compared to what the
                 # user expects.
-                self.modPan(self.curMouseX - self.mouseDragX,
-                            self.mouseDragY - self.curMouseY)
+                self.modPan(self.curMouseX - self.mouseDragX, self.mouseDragY - self.curMouseY)
             elif self.dragMode in [DRAG_BLACKPOINT, DRAG_WHITEPOINT]:
                 glx = -1 + 2 * self.curMouseX / self.w
                 threshold = self.histogram.gl2data(glx)
@@ -731,35 +733,34 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         # redrawing the histogram. A bit wasteful of resources, this.
         wx.CallAfter(self.Refresh)
 
-
     ## Generate a list of (label, action) tuples to use for generating menus.
     def getMenuActions(self):
-        return [('Reset view', self.resetView),
-                ('Set histogram parameters', self.onSetHistogram),
-                ('Toggle clip highlighting', self.image.toggleClipHighlight),
-                ('', None),
-                ('Toggle alignment crosshair', self.toggleCrosshair),
-                ("Toggle FFT mode", self.toggleFFT),
-                ('', None),
-                ('Save image', self.saveData)
-                ]
-
+        return [
+            ("Reset view", self.resetView),
+            ("Set histogram parameters", self.onSetHistogram),
+            ("Toggle clip highlighting", self.image.toggleClipHighlight),
+            ("", None),
+            ("Toggle alignment crosshair", self.toggleCrosshair),
+            ("Toggle FFT mode", self.toggleFFT),
+            ("", None),
+            ("Save image", self.saveData),
+        ]
 
     ## Let the user specify the blackpoint and whitepoint for image scaling.
-    def onSetHistogram(self, event = None):
+    def onSetHistogram(self, event=None):
         values = cockpit.gui.dialogs.getNumberDialog.getManyNumbersFromUser(
-            parent = self, title = "Set histogram scale parameters",
-            prompts = ["Blackpoint", "Whitepoint"],
-            defaultValues = [self.histogram.lthresh, self.histogram.uthresh])
+            parent=self,
+            title="Set histogram scale parameters",
+            prompts=["Blackpoint", "Whitepoint"],
+            defaultValues=[self.histogram.lthresh, self.histogram.uthresh],
+        )
         values = [float(v) for v in values]
         self.image.vmin = self.histogram.lthresh = values[0]
         self.image.vmax = self.histogram.uthresh = values[1]
         self.Refresh()
 
-
     def toggleCrosshair(self, event=None):
-        self.showCrosshair = not(self.showCrosshair)
-
+        self.showCrosshair = not (self.showCrosshair)
 
     def toggleFFT(self, event=None):
         if self.showFFT:
@@ -769,15 +770,18 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             self.showFFT = True
             self.image.setData(np.log(np.abs(np.fft.fftshift(np.fft.fft2(self.imageData))) + 1e-16))
 
-
     ## Convert window co-ordinates to gl co-ordinates.
     def canvasToGl(self, x, y):
-        glx = (-1 + 2 *x / self.w - self.panX * self.zoom) / self.zoom
-        gly = -(-1 + 2 * y / (self.h - (HISTOGRAM_HEIGHT*
-                                        self.GetContentScaleFactor()))
-                + self.panY * self.zoom) / self.zoom
+        glx = (-1 + 2 * x / self.w - self.panX * self.zoom) / self.zoom
+        gly = (
+            -(
+                -1
+                + 2 * y / (self.h - (HISTOGRAM_HEIGHT * self.GetContentScaleFactor()))
+                + self.panY * self.zoom
+            )
+            / self.zoom
+        )
         return (glx, gly)
-
 
     ## Convert gl co-ordinates to indices into the data.
     # Note: pass in x,y, but returns row-major datay, datax
@@ -786,11 +790,9 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         datay = (1 + gly) * self.imageShape[0] // 2
         return (datay, datax)
 
-
     ## Convert window co-ordinates to indices into the data.
     def canvasToIndices(self, x, y):
         return self.glToIndices(*self.canvasToGl(x, y))
-
 
     ## Display information on the pixel under the mouse at the given
     # position.
@@ -798,8 +800,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         # Test that all required values have been populated. Use any(...),
         # because ```if None in [...]:``` will throw an exception when an
         # element in the list is an array with more than one element.
-        if any(req is None for req in [self.imageData, self.imageShape,
-                                       self.w, self.h]):
+        if any(req is None for req in [self.imageData, self.imageShape, self.w, self.h]):
             return
         # First we have to convert from screen- to data-coordinates.
         coords = numpy.array(self.canvasToIndices(x, y), dtype=np.uint)
@@ -808,13 +809,11 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             value = self.imageData[coords[0], coords[1]]
             events.publish("image pixel info", coords[::-1], value)
 
-
     ## Modify our panning amount by the provided factor.
     def modPan(self, dx, dy):
         self.panX += 2 * dx / (self.w * self.zoom)
         self.panY += 2 * dy / (self.h * self.zoom)
         self.Refresh(0)
-
 
     ## Reset our view mods.
     def resetView(self):
@@ -832,8 +831,9 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         self.Refresh()
 
     def saveData(self, evt=None):
-        with wx.FileDialog(self, "Save image", wildcard="DV files (*.dv)|*.dv",
-                           style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+        with wx.FileDialog(
+            self, "Save image", wildcard="DV files (*.dv)|*.dv", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+        ) as fileDialog:
             if fileDialog.ShowModal() != wx.ID_OK:
                 return
             path = fileDialog.GetPath()
@@ -841,5 +841,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         # kwargs, but the way per-camera pixel sizes are handled needs to be
         # addressed first. See issue #538.
         if self.Parent.Parent.curCamera is not None:
-            wls = [self.Parent.Parent.curCamera.wavelength,]
+            wls = [
+                self.Parent.Parent.curCamera.wavelength,
+            ]
         cockpit.util.datadoc.writeDataAsMrc(self.imageData, path, wavelengths=wls)

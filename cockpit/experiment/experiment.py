@@ -219,11 +219,13 @@ class Experiment:
                 self.cameraToIsReady[camera] = False
 
         self.createValidActionTable()
-        if self.numReps > 1 and self.repDuration < self.table.lastActionTime / 1000:
-            warning = "Repeat duration is less than the time required to run " \
-                      "one repeat. Choose:" \
-                      "\n    'OK' to run repeats as fast as possible;" \
-                      "\n    'Cancel' to go back and change parameters."
+        if self.numReps > 1 and self.table and self.repDuration < self.table.lastActionTime / 1000:
+            warning = (
+                "Repeat duration is less than the time required to run "
+                "one repeat. Choose:"
+                "\n    'OK' to run repeats as fast as possible;"
+                "\n    'Cancel' to go back and change parameters."
+            )
             if not guiUtils.getUserPermission(warning):
                 return False
 
