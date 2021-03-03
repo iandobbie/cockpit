@@ -55,13 +55,11 @@ from cockpit import events
 from . import immediateMode
 import cockpit.interfaces.imager
 import cockpit.interfaces.stageMover
-import cockpit.util.user
-
 import cockpit.util
+import wx
 import numpy
 import os
 import time
-
 
 
 ## This class serves as an example of how to run an immediate-mode
@@ -82,8 +80,8 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         # data to. The experiment assumes we're
         # using the currently-active cameras and light sources for setting
         # up the output data file.
-        # Here we do 5 reps, with a 4s duration, and 1 image per rep. The 
-        # file will get saved as "out.mrc" in the current user's data 
+        # Here we do 5 reps, with a 4s duration, and 1 image per rep. The
+        # file will get saved as "out.mrc" in the current user's data
         # directory.
         datadir = cockpit.util.userConfig.getValue("data-dir")
 
@@ -101,7 +99,7 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         return False
 
     ## This function is where you will implement the logic to be performed
-    # in each rep of the experiment. 
+    # in each rep of the experiment.
     def executeRep(self, repNum):
         # Get all light sources that the microscope has.
         allLights = depot.getHandlersOfType(depot.LIGHT_TOGGLE)
@@ -110,7 +108,7 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         allLights = list(allLights)
         # Print the names of all light sources.
         for light in allLights:
-            print (light.name)
+            print(light.name)
         # Get all power controls for light sources.
         allLightPowers = depot.getHandlersOfType(depot.LIGHT_POWER)
         # Get all light source filters.
@@ -124,17 +122,7 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
             raise RuntimeWarning("No Active Cameras Detected")
         # self.cameraToImageCount = [1 for _ in activeCams]
         # Get a specific light.
-        deepstar405 = depot.getHandlerWithName("488 Deepstar")
-
-        deepstar405power = depot.getHandlerWithName("488 Deepstar power")
-
-        # Set the output power to use for this light source, when it is active.
-        deepstar405power.setPower(15)
-
-        # Get another light source. The "\n" in the name is a newline, which
-        # was inserted (when this light source handler was created) to make
-        # the light control button look nice. 
-        laser488 = depot.getHandlerWithName("488\nlight")
+        laser488 = depot.getHandlerWithName("488nm")
 
         # Set this light source to be enabled when we take images.
         laser488.setEnabled(True)
@@ -168,10 +156,10 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         # Get the current stage position; positions are in microns.
         curX, curY, curZ = cockpit.interfaces.stageMover.getPosition()
         # Move to a new Z position, and wait until we arrive.
-        cockpit.interfaces.stageMover.goToZ(curZ + 5, shouldBlock = True)
+        cockpit.interfaces.stageMover.goToZ(curZ + 5, shouldBlock=True)
         # Move to a new XY position.
         # Note: the goToXY function expects a "tuple" for the position,
         # hence the extra parentheses (i.e. "goToXY(x, y)" is invalid;
-        # "goToXY((x, y))" is correct). 
-        cockpit.interfaces.stageMover.goToXY((curX + 50, curY - 50), shouldBlock = True)
+        # "goToXY((x, y))" is correct).
+        cockpit.interfaces.stageMover.goToXY((curX + 50, curY - 50), shouldBlock=True)
 
