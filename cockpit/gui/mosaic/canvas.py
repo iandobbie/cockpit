@@ -122,11 +122,12 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         self.Bind(wx.EVT_MOUSE_EVENTS, mouseCallback)
         # Do nothing on this event, to avoid flickering.
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: event)
-        #event on DPI chnage on high DPI screens, needed for Mac retina
-        #displays.
-        self.Bind(wx.EVT_DPI_CHANGED, self.onDPIchange)
-  
-
+        # event on DPI chnage on high DPI screens, needed for Mac retina
+        # displays.
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self.onDPIchange)
+        except AttributeError:
+            cockpit.util.logger.log.info("No EVT_DPI_CHANGED attribute")
 
     ## Now that OpenGL's ready to go, perform any necessary initialization.
     # We can now create textures, for example, so it's time to create our 
