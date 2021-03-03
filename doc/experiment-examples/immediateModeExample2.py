@@ -57,6 +57,7 @@ import cockpit.interfaces.imager
 import cockpit.interfaces.stageMover
 import cockpit.util.user
 
+import cockpit.util
 import numpy
 import os
 import time
@@ -84,11 +85,13 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         # Here we do 5 reps, with a 4s duration, and 1 image per rep. The 
         # file will get saved as "out.mrc" in the current user's data 
         # directory.
-        savePath = os.path.join(cockpit.util.user.getUserSaveDir(), "out.mrc")
-        print ("Saving file to",savePath)
-        immediateMode.ImmediateModeExperiment.__init__(self,
-                numReps = 5, repDuration = 4, imagesPerRep = 1,
-                savePath = savePath)
+        datadir = cockpit.util.userConfig.getValue("data-dir")
+
+        if not datadir:  # we do this over using default because we explicitly want to avoid having None here
+            datadir = "~/data/"
+
+        savePath = os.path.join(datadir, "out.mrc")
+        print("Saving files to", savePath)
 
 
     ## This function is where you will implement the logic to be performed
