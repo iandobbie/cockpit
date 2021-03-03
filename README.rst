@@ -18,7 +18,7 @@ microscopes. More detailed information is available:
 
 - on the `Webpage <https://micronoxford.com/python-microscope-cockpit>`__
 
-- in the `Docs <https://www.micron.ox.ac.uk/software/cockpit/install.html`__
+- in the `Docs <https://www.micron.ox.ac.uk/software/cockpit/install.html>`__
 
 Main Features
 --------------
