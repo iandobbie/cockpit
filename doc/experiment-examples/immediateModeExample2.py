@@ -161,7 +161,7 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
             imageMedian = numpy.median(image)
             imageStd = numpy.std(image)
 
-        print ("Image stats:", imageMin, imageMax, imageMedian, imageStd)
+            print("Image stats:", imageMin, imageMax, imageMedian, imageStd)
 
         # Some miscellaneous functions below.
 
