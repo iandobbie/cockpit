@@ -115,14 +115,11 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
 
         # Get all camera handlers that the microscope has, and filter it
         # down to the ones that are currently active.
-        allCameras = depot.getHandlersOfType(depot.CAMERA)
-        # Create a new empty list.
-        activeCams = []
-        for camera in allCameras:
-            if camera.getIsEnabled():
-                # Camera is enabled.
-                activeCams.append(camera)
+        activeCams = depot.getActiveCameras()
 
+        if not activeCams:
+            raise RuntimeWarning("No Active Cameras Detected")
+        # self.cameraToImageCount = [1 for _ in activeCams]
         # Get a specific light.
         deepstar405 = depot.getHandlerWithName("488 Deepstar")
 
