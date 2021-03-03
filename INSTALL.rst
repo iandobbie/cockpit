@@ -6,7 +6,7 @@ short version of it is::
     pip install microscope-cockpit
 
 
-Once installed, cockpit can be started from command line:
+Once installed, cockpit can be started from command line::
 
     cockpit
 
