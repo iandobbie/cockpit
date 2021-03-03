@@ -10,7 +10,31 @@
 Configuration
 *************
 
-There are two parts to configuring cockpit.  The :ref:`configuration
+Cockpit is based on `microscope <https://www.micron.ox.ac.uk/software/microscope/>`_, which handles the hardware level device communication. This file is concerned with the configuration of cockpit proper: it assumes you already have a working microscope ``device_server``. For more information on setting up a ``device_server`` see `here <https://www.micron.ox.ac.uk/software/microscope/doc/architecture/device-server.html>`_
+
+Defaults
+--------
+If you've just installed cockpit through pip and run it, you'll be running it without these configuration files. You will need to make your own, but it is probably easiest to use someone elses config files as a starting point. Example configuration files can be found `here <https://github.com/MicronOxford/configs>`. It is possible to specify just a depot file, provided it is found in the correct location:
+
+.. _default_config_locations:
+
+Location of config files
+------------------------
+
+By default, Cockpit will look for files named ``cockpit.conf`` and
+``depot.conf``.  The location of these files are system-dependent:
+
+=======  =================================  ==========================================
+OS       System-wide                        User
+=======  =================================  ==========================================
+Linux    ``/etc/xdg/cockpit/``              ``$HOME/.config/cockpit/``
+MacOS    ``/Library/Preferences/cockpit/``  ``~/Library/Application Support/cockpit/``
+Windows  ``%ProgramData%\cockpit\``         ``%LocalAppData%\cockpit\``
+=======  =================================  ==========================================
+
+Configuring Cockpit Proper
+===================
+There are two parts to configuring cockpit. The :ref:`configuration
 of cockpit proper <cockpit-config>` that covers most of cockpit
 options, and the :ref:`depot configuration <depot-config>` which lists
 all devices that cockpit will have control over.
@@ -20,15 +44,70 @@ all devices that cockpit will have control over.
    sense to configure can have system-wide value, in which case should
    be moved into cockpit config.
 
+.. _depot-config:
+
+Depot Configuration
+===================
+
+Depot is the collection of devices available to the cockpit program.
+Each section of a depot configuration specifies a single device: the
+section name being the device name, while the options are the device
+configuration. These devices should correspond to those defined by your Python Microscope config file.
+For example:
+
+.. code:: ini
+
+  [west]
+  type: cockpit.devices.microscopeCamera.MicroscopeCamera
+  uri: PYRO:WestCamera@127.0.0.1:8001
+
+  [woody]
+  type: cockpit.devices.executorDevices.ExecutorDevice
+  uri: PYRO:Sheriff@192.168.0.2:8002
+
+  [488nm]
+  type: cockpit.devices.microscopeDevice.MicroscopeLaser
+  uri: PYRO:Deepstar488Laser@192.168.0.3:7001
+  wavelength: 488
+  triggerSource: woody
+  triggerLine: 1
+
+defines three devices: a camera named "west", an executor named
+"woody", and a laser light source named "488nm".  Each device has a
+``type`` option which specifies the fully qualified class name of that
+device.  Each device type will require a different set of options
+which should be documented in the device type documentation.
+
+
+Multiple files
+--------------
+
+Like the cockpit configuration, depot configuration may span multiple
+files.  Unlike the cockpit configuration where sections with the same
+name are merged, each device section must be unique and sections with
+the same name will cause an error, even if in different files.
+
+In the case of depot files, precedence means what files get read.  If
+a set of files is present, the others are not processed.  The order is
+as follow:
+
+1. depot files in command line options.
+2. depot files in cockpit config files.  If multiple cockpit config
+   files define depot files, the list of files is read is the one in
+   the file with :ref:`highest precedence
+   <cockpit_config_precedence>`.
+3. ``depot.conf`` files in :ref:`standard, system-dependent locations
+   <default_config_locations>`.
+
 .. _cockpit-config:
 
 Cockpit Configuration
 =====================
 
-Config file
+INI file
 -----------
 
-Cockpit configuration is mainly performed with an `INI file
+Cockpit configuration of global settings, directories and logging options is mainly performed with an `INI file
 <https://en.wikipedia.org/wiki/INI_file>`_, with multiple options
 organised over sections.  For example:
 
@@ -170,72 +249,4 @@ This enables users to have a configuration file that overrides
 system-wide settings, or to use command line options for one-off
 change of settings.
 
-.. _depot-config:
 
-Depot Configuration
-===================
-
-Depot is the collection of devices available to the cockpit program.
-Each section of a depot configuration specifies a single device: the
-section name being the device name, while the options are the device
-configuration.  For example:
-
-.. code:: ini
-
-  [west]
-  type: cockpit.devices.microscopeCamera.MicroscopeCamera
-  uri: PYRO:WestCamera@127.0.0.1:8001
-
-  [woody]
-  type: cockpit.devices.executorDevices.ExecutorDevice
-  uri: PYRO:Sheriff@192.168.0.2:8002
-
-  [488nm]
-  type: cockpit.devices.microscopeDevice.MicroscopeLaser
-  uri: PYRO:Deepstar488Laser@192.168.0.3:7001
-  wavelength: 488
-  triggerSource: woody
-  triggerLine: 1
-
-defines three devices: a camera named "west", an executor named
-"woody", and a laser light source named "488nm".  Each device has a
-``type`` option which specifies the fully qualified class name of that
-device.  Each device type will require a different set of options
-which should be documented in the device type documentation.
-
-
-Multiple files
---------------
-
-Like the cockpit configuration, depot configuration may span multiple
-files.  Unlike the cockpit configuration where sections with the same
-name are merged, each device section must be unique and sections with
-the same name will cause an error, even if in different files.
-
-In the case of depot files, precedence means what files get read.  If
-a set of files is present, the others are not processed.  The order is
-as follow:
-
-1. depot files in command line options.
-2. depot files in cockpit config files.  If multiple cockpit config
-   files define depot files, the list of files is read is the one in
-   the file with :ref:`highest precedence
-   <cockpit_config_precedence>`.
-3. ``depot.conf`` files in :ref:`standard, system-dependent locations
-   <default_config_locations>`.
-
-.. _default_config_locations:
-
-Location of config files
-========================
-
-By default, Cockpit will look for files named ``cockpit.conf`` and
-``depot.conf``.  The location of these files are system-dependent:
-
-=======  =================================  ==========================================
-OS       System-wide                        User
-=======  =================================  ==========================================
-Linux    ``/etc/xdg/cockpit/``              ``$HOME/.config/cockpit/``
-MacOS    ``/Library/Preferences/cockpit/``  ``~/Library/Application Support/cockpit/``
-Windows  ``%ProgramData%\cockpit\``         ``%LocalAppData%\cockpit\``
-=======  =================================  ==========================================
