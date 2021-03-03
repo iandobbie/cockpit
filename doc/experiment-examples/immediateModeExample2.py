@@ -94,6 +94,8 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         print("Saving files to", savePath)
 
         self.table = None
+        super().__init__(numReps=5, repDuration=4, imagesPerRep=1, savePath=savePath)
+
     def is_running(self):
         # HACK: Imager won't collect images if an experiment is running... Catch 22 here... So just breaking this for now
         return False
