@@ -12,11 +12,13 @@ Microscope-Cockpit
 
 Cockpit is a microscope graphical user interface.  It is a flexible
 and easy to extend platform aimed at life scientists using bespoke
-microscopes. A more detailed description is available in the recently
-published `bioRxiv paper
-<https://www.biorxiv.org/content/10.1101/2021.01.18.427178v1>`__
-and on the `Webpage
-<https://micronoxford.com/python-microscope-cockpit>`__
+microscopes. More detailed information is available:
+
+- in the recently published `bioRxiv paper <https://www.biorxiv.org/content/10.1101/2021.01.18.427178v1>`__
+
+- on the `Webpage <https://micronoxford.com/python-microscope-cockpit>`__
+
+- in the `Docs <https://www.micron.ox.ac.uk/software/cockpit/>`__
 
 Its main features are:
 ----------------------
