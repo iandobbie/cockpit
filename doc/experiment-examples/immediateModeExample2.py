@@ -93,6 +93,9 @@ class MyExperiment(immediateMode.ImmediateModeExperiment):
         savePath = os.path.join(datadir, "out.mrc")
         print("Saving files to", savePath)
 
+    def is_running(self):
+        # HACK: Imager won't collect images if an experiment is running... Catch 22 here... So just breaking this for now
+        return False
 
     ## This function is where you will implement the logic to be performed
     # in each rep of the experiment. 
