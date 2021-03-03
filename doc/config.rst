@@ -1,11 +1,11 @@
 .. Copyright (C) 2020 David Miguel Susano Pinto <david.pinto@bioch.ox.ac.uk>
-
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
    Version 1.3 or any later version published by the Free Software
    Foundation; with no Invariant Sections, no Front-Cover Texts, and
    no Back-Cover Texts.  A copy of the license is included in the
    section entitled "GNU Free Documentation License".
+
 
 Configuration
 *************
@@ -33,7 +33,7 @@ Windows  ``%ProgramData%\cockpit\``         ``%LocalAppData%\cockpit\``
 =======  =================================  ==========================================
 
 Configuring Cockpit Proper
-===================
+==========================
 There are two parts to configuring cockpit. The :ref:`configuration
 of cockpit proper <cockpit-config>` that covers most of cockpit
 options, and the :ref:`depot configuration <depot-config>` which lists
@@ -105,7 +105,7 @@ Cockpit Configuration
 =====================
 
 INI file
------------
+--------
 
 Cockpit configuration of global settings, directories and logging options is mainly performed with an `INI file
 <https://en.wikipedia.org/wiki/INI_file>`_, with multiple options
@@ -126,7 +126,7 @@ organised over sections.  For example:
 The following sections and their options are recognised:
 
 global section
-``````````````
+--------------
 
 channel-files
   List of files defining channel configurations to be loaded by
@@ -151,7 +151,7 @@ pyro-pickle-protocol
   available.  This affects *all* Pyro connections.
 
 log section
-```````````
+-----------
 level
   Threshold level for the messages displayed on both the logging
   window and log files.  Only messages that have a severity level
@@ -162,7 +162,7 @@ dir
   Directory to create new log files.
 
 stage section
-`````````````
+-------------
 
 primitives
 
