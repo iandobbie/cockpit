@@ -18,7 +18,8 @@ short version of it is "use pip"::
     pip install microscope-cockpit
 
 Once installed, Cockpit can be started from command line::
-    cockpit
+
+     cockpit
     
 This will start a default version of cockpit with dummy devices. If you're 
 writing experiments or setting it up on your own microscope,
