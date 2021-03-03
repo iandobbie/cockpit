@@ -13,13 +13,13 @@ Installation
 Cockpit is available on the Python Package Index (PyPI) and can be
 `installed like any other Python package
 <https://packaging.python.org/tutorials/installing-packages/>`__.  The
-short version of it is "use pip"::
+short version is "use pip"::
 
     pip install microscope-cockpit
 
 Once installed, Cockpit can be started from command line::
 
-     cockpit
+    cockpit
     
 This will start a default version of cockpit with dummy devices. If you're 
 writing experiments or setting it up on your own microscope,
