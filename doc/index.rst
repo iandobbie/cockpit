@@ -15,7 +15,9 @@ Microscope-Cockpit
    :hidden:
 
    install
+   getting-started
    config
+   sourcecode_architecture
    troubleshoot
 
 Cockpit is a microscope graphical user interface.  It is a flexible

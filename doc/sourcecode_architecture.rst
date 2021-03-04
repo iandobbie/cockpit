@@ -1,5 +1,10 @@
-===Introduction===
+.. Reformatted to RST my Martin Hailstone
+   I think something like this should form the basis of an Architecture Doc,
+   in a similar way to the microscope docs, but someone who understands this 
+   better should write it/modify it
 
+Introduction
+============
 This file gives an overview of the code in the MUI codebase. More specific
 documentation will be in the comments in the individual files themselves, or 
 in README.txt files within subdirectories. 
@@ -14,8 +19,8 @@ MicroManager, MUI is really about the user interface, while MicroManager is
 more about the hardware and supporting large numbers of devices. Getting them
 to work together nicely is a long-term goal in MUI development. 
 
-===Device code===
-
+Device code
+-----------
 MUI "device code" is the code that actually talks to devices (or talks to 
 code that talks to devices, etc.). In other words, it's the code that is 
 specific to your particular microscope. I've written three sets of MUI device
@@ -42,8 +47,8 @@ just have configuration tweaks between them, but instead I've just been
 manually merging them whenever there's been major changes in the underlying
 code.
 
-===Handler code===
-
+Handler code
+------------
 DeviceHandler instances are the primary way that device code communicates with
 the UI (and vice versa). Each DeviceHandler module (in the "handlers" 
 directory) represents an abstracted bit of hardware: a camera, a light source, 
@@ -61,8 +66,10 @@ presumably talks to the hardware.
 In short, MUI talks to the DeviceHandler, the DeviceHandler talks to your 
 Device, your Device talks to the hardware. 
 
-===Event handling===
+.. So this explains handlers, but what about Interfaces?
 
+Event handling
+--------------
 MUI has a simple internal event publishing system, in the events.py module. 
 This system allows for an alternate method of communication between the 
 UI and device code. Any code may subscribe to an event (which is just a 
@@ -77,8 +84,8 @@ device code is responsible for subscribing to, if it wants to respond when
 e.g. an experiment is about to start. README.txt has more information about
 what specific events are available.
 
-===UI code===
-
+UI code
+-------
 If you want to follow program flow, you should start in cockpit.pyw and 
 depot.py. The former file has the full initialization routine, setting up the 
 devices and the interface. The latter is responsible for more device-specific
@@ -93,7 +100,8 @@ allows the user to set up exposure settings and run experiments.
 Once initialization is completed, we simply enter the event loop (provided by
 the wxPython library) and wait for the user to do something. 
 
-=== CUSTOMIZATION ===
+CUSTOMIZATION
+-----------
 Of course, the cockpit isn't much good without any hardware. The "devices" 
 directory should be the only directory that you will need to modify; it's here
 that you can hook up your hardware to the cockpit. 
@@ -116,7 +124,8 @@ a list of Handlers; the UI then interacts with these Handlers when the user
 performs actions. Take a look at the "devices/handlers" directory for the 
 available handlers. 
 
-=== EVENTS ===
+EVENTS
+------
 MUI includes an event-publishing system to handle some communications between
 different components. An "event" is simply a string and some associated data.
 Code can "subscribe" to a specific event; when other code "publishes" that
