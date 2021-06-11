@@ -85,18 +85,21 @@ class ZStackExperiment(experiment.Experiment):
             #find if this is a digital axis
             zTarget = self.zStart + self.sliceHeight * zIndex
             motionTime, stabilizationTime = 0, 0
-            if prevAltitude is not None:
-                motionTime, stabilizationTime = self.zPositioner.getMovementTime(prevAltitude, zTarget)
-                # digitial Z stack devices should add a pulse here and not
-                #an analogue voltage, but not on first loop
-                if(self.zPositioner.digital):
-                    table.addToggle(curTime, self.zPositioner)
-                    curTime += motionTime
-                else:
+            if(self.zPositioner.digital):
+                motionTime, stabilizationTime = self.zPositioner.getMovementTime(0, zTarget)
+                table.addToggle(curTime, self.zPositioner)
+                if prevAltitude is None:
+                    #first movement is likely large allow to settle.
+                    curTime += motionTime*10
+            else:
+                if prevAltitude is not None:
+                    motionTime, stabilizationTime = self.zPositioner.getMovementTime(prevAltitude, zTarget)
+                    # digitial Z stack devices should add a pulse here and not
+                    #an analogue voltage, but not on first loop
                     curTime += motionTime
                     table.addAction(curTime, self.zPositioner, zTarget)
-            curTime += stabilizationTime
-            prevAltitude = zTarget
+                curTime += stabilizationTime
+                prevAltitude = zTarget
 
             # Image the sample.
             for cameras, lightTimePairs in self.exposureSettings:
@@ -118,6 +121,7 @@ class ZStackExperiment(experiment.Experiment):
             # This works for analouge, the assumption is the remote does this
             # in digital triggering
             table.addAction(curTime, self.zPositioner, self.zStart)
+
         # Hold flat for the stabilization time, and any time needed for
         # the cameras to be ready. Only needed if we're doing multiple
         # reps, so we can proceed immediately to the next one.

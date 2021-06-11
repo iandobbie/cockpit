@@ -297,8 +297,8 @@ class Experiment:
         cockpit.interfaces.stageMover.waitForStop()
         # TODO: Handling multiple movers on an axis is broken. Do not proceed if
         # anything but the innermost Z mover is selected. Needs a proper fix.
-        if (cockpit.interfaces.stageMover.mover.curHandlerIndex
-            < len(depot.getSortedStageMovers()[2])-1):
+        # IMD:- Further hack to allow piezo and remotez on deepsim
+        if (cockpit.interfaces.stageMover.mover.curHandlerIndex == 0):
             wx.MessageBox("Wrong axis mover selected.")
             raise Exception("Wrong axis mover selected.")
         # Prepare our position.
