@@ -411,7 +411,10 @@ class ExperimentConfigPanel(wx.Panel):
         self.saveSettings()
         # Find the Z mover with the smallest range of motion, assumed
         # to be our experiment mover.
-        mover = wx.GetApp().Depot.getSortedStageMovers()[2][-1]
+        # IMD this breaks witht he rmotez config where we want both
+        # remotez and piezo to be valid for experiments, so just return
+        # current selected mover 
+        mover = depot.getSortedStageMovers()[2][cockpit.interfaces.stageMover.mover.curHandlerIndex]
         # Only use active cameras and enabled lights.
         # Must do list(filter) because we will iterate over the list
         # many times.
