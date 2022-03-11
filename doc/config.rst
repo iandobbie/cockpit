@@ -302,3 +302,32 @@ entries.  For example:
     multine values: Just start the following lines
         with white space to create multine values.
         The value can span as many lines as you want.
+
+.. _multiplex-config:
+
+Multiplex channel configuration
+===============================
+
+Historically Cockpit was designed around reliably hardware timing
+devices and multiple channel capture required a multi-camera systems where
+each channel had an independent camera. With this timing model we have
+implemented multiplexed imaging on a single camera using multiple
+bandpass filter sets (eg triple or quad filter cubes) and hardware
+triggered light independent sources like lasers or LEDs. In order for
+the system to properly provide the excitation and emission wavelengths
+in the output file metadata cameras used in such a setup require an
+additional configuration parameter so that the software knows which
+excitation light to map to what emission wavelength.
+
+The parameter required is "em-map" this parameter maps excitation
+wavelengths to emission wavelengths. The format is ex-wavelength:
+em-wavelength. An example would be
+
+.. code::
+   
+    em-map:
+      488: 525
+      561: 610
+
+This would map the 488 excitation source to a 525 emission wavelength,
+and 561 to 610. 
