@@ -405,8 +405,16 @@ class Experiment:
                 # All reps handled by an executor.
                 cockpit.util.logger.log.debug("Stopping now at %.2f" % time.time())
                 break
-            # Wait for the end of the rep.
-            if rep != self.numReps - 1:
+            # Wait for the end of the rep. display delay while waiting. 
+            if rep != self.numReps - 1 and not shouldStop:
+                waitTime = self.repDuration - (time.time() - startTime)
+                while (waitTime > 2 and (not shouldStop)) :
+                    waitTime = self.repDuration - (time.time() - startTime)
+                    events.publish(events.UPDATE_STATUS_LIGHT,'cycle delay',
+                                   "Rep %d in %d s" %
+                                   (rep+1,int(waitTime)))
+                    time.sleep(1)
+                events.publish(events.UPDATE_STATUS_LIGHT,'cycle delay','')
                 waitTime = self.repDuration - (time.time() - startTime)
                 time.sleep(max(0, waitTime))
         ## TODO: figure out how long we should wait for the last captures to complete.
