@@ -623,6 +623,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             return
 
         try:
+            self.w, self.h = self.GetClientSize()*self.GetContentScaleFactor()
             Hist_Height=int(HISTOGRAM_HEIGHT*self.GetContentScaleFactor())
             self.painting = True
             self.SetCurrent(self.context)

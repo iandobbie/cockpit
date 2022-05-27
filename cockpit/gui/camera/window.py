@@ -88,7 +88,10 @@ class CamerasWindow(wx.Frame):
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
         events.subscribe("image pixel info", self.onImagePixelInfo)
         cockpit.gui.keyboard.setKeyboardHandlers(self)
-
+        self.Bind(wx.EVT_SIZE, self.onSize)
+        self.Bind(wx.EVT_IDLE, self.onEndSize)
+        self.sizing=False
+        
         self.resetGrid()
         self.SetDropTarget(cockpit.gui.viewFileDropTarget.ViewFileDropTarget(self))
 
@@ -122,14 +125,28 @@ class CamerasWindow(wx.Frame):
 
         self.sizer.Clear()
         for view in viewsToShow:
-            self.sizer.Add(view)
+            self.sizer.Add(view,wx.EXPAND)
         self.sizer.ShowItems(True)
 
         self.sizer.Layout()
         self.panel.SetSizerAndFit(self.sizer)
         self.SetClientSize(self.panel.GetSize())
 
+    # When the window is resized redo the individual viewpanels to be that
+    # height.
+    def onSize(self, event):
+        self.sizing=True
+        size=self.GetClientSize()
 
+    def onEndSize(self, event):
+        self.sizing = False
+        size=self.Size
+        print(size)
+        for view in self.views:
+            view.SetSize((size[1],size[1]+30))
+        self.resetGrid()
+
+        
     ## Received information on the pixel under the mouse; update our title
     # to include that information.
     def onImagePixelInfo(self, coords, value):
