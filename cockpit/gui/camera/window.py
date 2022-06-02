@@ -135,16 +135,18 @@ class CamerasWindow(wx.Frame):
     # When the window is resized redo the individual viewpanels to be that
     # height.
     def onSize(self, event):
-        self.sizing=True
-        size=self.GetClientSize()
-
-    def onEndSize(self, event):
-        self.sizing = False
+ #       self.sizing = False
         size=self.Size
         print(size)
         for view in self.views:
-            view.SetSize((size[1],size[1]+30))
+            view.change_size((size[1],size[1]+30))
         self.resetGrid()
+        #self.sizing=True
+        #size=self.GetClientSize()
+
+    def onEndSize(self, event):
+        pass
+
 
         
     ## Received information on the pixel under the mouse; update our title
