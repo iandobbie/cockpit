@@ -88,8 +88,8 @@ class CamerasWindow(wx.Frame):
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
         events.subscribe("image pixel info", self.onImagePixelInfo)
         cockpit.gui.keyboard.setKeyboardHandlers(self)
-        self.Bind(wx.EVT_SIZE, self.onSize)
-        self.Bind(wx.EVT_IDLE, self.onEndSize)
+ #       self.Bind(wx.EVT_SIZE, self.onSize)
+ #       self.Bind(wx.EVT_IDLE, self.onEndSize)
         self.sizing=False
         
         self.resetGrid()
