@@ -84,16 +84,19 @@ class CamerasWindow(wx.Frame):
         for i in range(self.numCameras):
             view = viewPanel.ViewPanel(self.panel)
             self.views.append(view)
-
+            view.change_size()
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
         events.subscribe("image pixel info", self.onImagePixelInfo)
         cockpit.gui.keyboard.setKeyboardHandlers(self)
- #       self.Bind(wx.EVT_SIZE, self.onSize)
- #       self.Bind(wx.EVT_IDLE, self.onEndSize)
+
         self.sizing=False
+        self.startup=True
         
         self.resetGrid()
         self.SetDropTarget(cockpit.gui.viewFileDropTarget.ViewFileDropTarget(self))
+        self.Bind(wx.EVT_SIZE, self.onSize)
+
+
 
 
     @cockpit.util.threads.callInMainThread
@@ -135,19 +138,41 @@ class CamerasWindow(wx.Frame):
     # When the window is resized redo the individual viewpanels to be that
     # height.
     def onSize(self, event):
- #       self.sizing = False
-        size=self.Size
-        print(size)
-        for view in self.views:
-            view.change_size((size[1],size[1]+30))
-        self.resetGrid()
-        #self.sizing=True
-        #size=self.GetClientSize()
+        if self.startup == False:
+            self.resetGrid()          
+            self.startup=True
+            return
+        self.Bind(wx.EVT_IDLE, self.onEndSize)
+        print('sizing')
+        self.sizing = True
 
     def onEndSize(self, event):
-        pass
+        if self.sizing == False:
+            return
+        self.Unbind(wx.EVT_IDLE)
+        size=self.Size
+        #dont let the window get too small. 
+
+        print(size)
+        liveViews=[v for v in self.views if v.getIsEnabled()]
+        #ensure there is space for at least one view
+        if not liveViews:
+            liveViews.append(self.views[0])
+        #set x and y sizes, but not too small. 
+        ypanels=int((len(liveViews)/2)+0.5)
+        ysize=(size[1]/ypanels)-70
+        if ysize<= 200:
+            ysize=200
+        xsize=ysize
+        #set sizes for each viewpanel
+        for view in self.views:
+            view.change_size((xsize,ysize))
+        self.resetGrid()
+        self.sizing=False
 
 
+
+ 
         
     ## Received information on the pixel under the mouse; update our title
     # to include that information.
