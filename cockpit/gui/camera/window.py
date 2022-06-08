@@ -88,10 +88,10 @@ class CamerasWindow(wx.Frame):
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
         events.subscribe("image pixel info", self.onImagePixelInfo)
         cockpit.gui.keyboard.setKeyboardHandlers(self)
-
-        self.sizing=False
-        self.startup=True
-        
+        #at startup we call 
+        self.sizing=True
+ #       self.resetGrid()
+ #       self.onEndSize(1)
         self.resetGrid()
         self.SetDropTarget(cockpit.gui.viewFileDropTarget.ViewFileDropTarget(self))
         self.Bind(wx.EVT_SIZE, self.onSize)
@@ -138,35 +138,39 @@ class CamerasWindow(wx.Frame):
     # When the window is resized redo the individual viewpanels to be that
     # height.
     def onSize(self, event):
-        if self.startup == False:
-            self.resetGrid()          
-            self.startup=True
-            return
         self.Bind(wx.EVT_IDLE, self.onEndSize)
         print('sizing')
         self.sizing = True
 
     def onEndSize(self, event):
+
+        # check we have really been sizing. 
         if self.sizing == False:
             return
+        #unbind the idle event so we dont fire all the time
         self.Unbind(wx.EVT_IDLE)
+        #find window size to resize panels to. 
         size=self.Size
-        #dont let the window get too small. 
-
         print(size)
+        #Find views that are live and how many panels in y
         liveViews=[v for v in self.views if v.getIsEnabled()]
+        ypanels=max(int((len(liveViews)/2)+0.5),1)
         #ensure there is space for at least one view
         if not liveViews:
             liveViews.append(self.views[0])
-        #set x and y sizes, but not too small. 
-        ypanels=int((len(liveViews)/2)+0.5)
-        ysize=(size[1]/ypanels)-70
+        #set x and y sizes, but not too small.
+        #viewpanel is (windowx,windowy-28)
+        ysize=(size[1]/ypanels)-28
         if ysize<= 200:
             ysize=200
-        xsize=ysize
-        #set sizes for each viewpanel
+        # canvas has y size 30 pixels bigger due to histogram
+        xsize=ysize-30
+        print (xsize,ysize)
+        #set sizes for each viewpanel, even hidden ones so they are all
+        #the same size
         for view in self.views:
-            view.change_size((xsize,ysize))
+            #there is a weird 10 pixel offset in the sizes I dont undrestand
+            view.change_size((xsize,ysize+10))
         self.resetGrid()
         self.sizing=False
 
