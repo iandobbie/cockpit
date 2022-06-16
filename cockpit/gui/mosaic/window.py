@@ -864,7 +864,7 @@ class MosaicWindow(wx.Frame, MosaicCommon):
                         size = self.crosshairBoxSize))
         # Publish mosaic update event to update this and other views (e.g. touchscreen).
         events.publish(events.MOSAIC_UPDATE)
-
+        wx.CallAfter(self.Refresh)
 
     ## Set the site marker color.
     def setSiteColor(self, color):
