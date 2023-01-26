@@ -575,7 +575,11 @@ class MicroscopeStage(MicroscopeBase):
             )
             if cockpit.gui.guiUtils.getUserPermission(msg, title):
                  self._proxy.enable()
-
+                 #now reset hardLimits
+                 for axis in self._axes:
+                     handler=axis.getHandler()
+                     handler.hardLimits=axis._axis.limits
+                     handler.softLimits=handler.hardLimits
 
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
