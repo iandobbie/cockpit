@@ -584,3 +584,105 @@ class MicroscopeStage(MicroscopeBase):
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
         return [x.getHandler() for x in self._axes]
+
+class MicroscopeDIO(MicroscopeBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def initialize(self) -> None:
+        super().initialize()
+        self.numLines=self._proxy.get_num_lines()
+        #cache which we can read from if we dont want a roundtrip
+        #to the remote.
+        self.cache=[None]*self.numLines
+
+        #read config entries if they exisit to
+        IOMap = self.config.get('IOMap',None)
+        if IOMap:
+            self._proxy.set_all_IO_state(IOMap)
+
+    def read_line(self, line: int, cache=False) -> int:
+        if cache:
+            return cahce[line]
+        return self._proxy.read_line(line)
+
+
+    def write_line(self, line: int, state: bool) -> None:
+        self._proxy.write_line(line,state)
+
+
+
+    def set_IO_state(self,line,state):
+        self._proxy.set_IO_state(line,state)
+
+    ## Debugging function: display a debug window.
+    def showDebugWindow(self):
+        DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
+    
+
+## This debugging window lets each digital lineout of the DIO device
+## be manipulated individually.
+
+class DIOOutputWindow(wx.Frame):
+    def __init__(self, DIO, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        ## piDevice instance.
+        self.DIO = DIO
+        # Contains all widgets.
+        panel = wx.Panel(self)
+        mainSizer = wx.BoxSizer(wx.VERTICAL)
+        buttonSizer = wx.GridSizer(2, 4, 1, 1)
+
+        ## Maps buttons to their lines.
+        self.buttonToLine = {}
+
+        state=self.DIO._proxy.read_all_lines()
+        # Set up the digital lineout buttons.
+        for i in range(DIO.numLines) :
+            button = wx.ToggleButton(panel, wx.ID_ANY, str(i))
+            button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggle())
+            buttonSizer.Add(button, 1, wx.EXPAND)
+            self.buttonToLine[button] = i
+            if (state[i]==None):
+                #need to do soemthing like colour the button red
+                button.Disable()
+            else:
+                button.SetValue(state[i])
+        mainSizer.Add(buttonSizer)
+
+        panel.SetSizerAndFit(mainSizer)
+        self.SetClientSize(panel.GetSize())
+
+
+    ## One of our buttons was clicked; update the debug output.
+    def toggle(self):
+        output = 0
+        for button, line in self.buttonToLine.items():
+            self.DIO._proxy.write_line(line, button.GetValue())
+
+
+    # def getHandlers(self):
+    #     """Return device handlers."""
+    #     h = cockpit.handlers.filterHandler.FilterHandler(self.name, 'filters', False,
+    #                                              {'setPosition': self.setPosition,
+    #                                               'getPosition': self.getPosition,
+    #                                               'getFilters': self.getFilters},
+    #                                              self.cameras,
+    #                                              self.lights)
+    #     self.handlers = [h]
+    #     return self.handlers
+
+
+    # def setPosition(self, position, callback=None):
+    #     asproxy = Pyro4.Proxy(self._proxy._pyroUri)
+    #     asproxy._pyroAsync()
+    #     result = asproxy.set_position(position).then(callback)
+
+
+    # def getPosition(self):
+    #     return self._proxy.get_position()
+
+
+    # def getFilters(self):
+    #     return self.filters
+    
