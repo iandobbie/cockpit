@@ -610,8 +610,9 @@ class MicroscopeDIO(MicroscopeBase):
     def write_line(self, line: int, state: bool) -> None:
         self._proxy.write_line(line,state)
 
-
-
+    def get_IO_state(self,line):
+        return(self._proxy.get_IO_state(line))
+        
     def set_IO_state(self,line,state):
         self._proxy.set_IO_state(line,state)
 
@@ -631,36 +632,59 @@ class DIOOutputWindow(wx.Frame):
         # Contains all widgets.
         panel = wx.Panel(self)
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        buttonSizer = wx.GridSizer(2, 4, 1, 1)
+        toggleSizer = wx.GridSizer(1, DIO.numLines, 1, 1)
+        buttonSizer = wx.GridSizer(1, DIO.numLines, 1, 1)
+
 
         ## Maps buttons to their lines.
-        self.buttonToLine = {}
+        self.lineToButton = {}
 
         self.state=self.DIO._proxy.read_all_lines()
         # Set up the digital lineout buttons.
         for i in range(DIO.numLines) :
+            #state of IO , output or Input
+            toggle = wx.ToggleButton(panel, wx.ID_ANY)
+            toggle.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggleState())
+            toggleSizer.Add(toggle, 1, wx.EXPAND)
+            state=self.DIO.get_IO_state(i)
+            toggle.SetValue(state)
+            if state:
+                toggle.SetLabel("Output")
+            else:
+                toggle.SetLabel("Input")
+            #Button to toggle state of ourput lines.
             button = wx.ToggleButton(panel, wx.ID_ANY, str(i))
             button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggle())
             buttonSizer.Add(button, 1, wx.EXPAND)
-            self.buttonToLine[button] = i
+            self.lineToButton[i] = [toggle,button]
             if (self.state[i]==None):
-                #need to do soemthing like colour the button red
+                #need to do something like colour the button red
                 button.Disable()
             else:
                 button.SetValue(self.state[i])
+        mainSizer.Add(toggleSizer)
         mainSizer.Add(buttonSizer)
-
         panel.SetSizerAndFit(mainSizer)
         self.SetClientSize(panel.GetSize())
 
 
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
-        output = 0
-        for button, line in self.buttonToLine.items():
-            if (self.state[line] is not None):
-                print("DIO: %d: %s"%(line,str(button.GetValue())))
+        for line, (toggle, button)  in self.lineToButton.items():
+            if (self.DIO.get_IO_state(line)):
                 self.DIO._proxy.write_line(line, button.GetValue())
+
+    ## One of our buttons was clicked; update the debug output.
+    def toggleState(self):
+        for line, (toggle, button)  in self.lineToButton.items():
+            state=toggle.GetValue()
+            self.DIO._proxy.set_IO_state(line, state)
+            if state:
+                button.Enable()
+                toggle.SetLabel("Output")
+            else:
+                button.Disable()
+                toggle.SetLabel("Input")
 
 
     # def getHandlers(self):
