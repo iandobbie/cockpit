@@ -636,18 +636,18 @@ class DIOOutputWindow(wx.Frame):
         ## Maps buttons to their lines.
         self.buttonToLine = {}
 
-        state=self.DIO._proxy.read_all_lines()
+        self.state=self.DIO._proxy.read_all_lines()
         # Set up the digital lineout buttons.
         for i in range(DIO.numLines) :
             button = wx.ToggleButton(panel, wx.ID_ANY, str(i))
             button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggle())
             buttonSizer.Add(button, 1, wx.EXPAND)
             self.buttonToLine[button] = i
-            if (state[i]==None):
+            if (self.state[i]==None):
                 #need to do soemthing like colour the button red
                 button.Disable()
             else:
-                button.SetValue(state[i])
+                button.SetValue(self.state[i])
         mainSizer.Add(buttonSizer)
 
         panel.SetSizerAndFit(mainSizer)
@@ -658,7 +658,9 @@ class DIOOutputWindow(wx.Frame):
     def toggle(self):
         output = 0
         for button, line in self.buttonToLine.items():
-            self.DIO._proxy.write_line(line, button.GetValue())
+            if (self.state[line] is not None):
+                print("DIO: %d: %s"%(line,str(button.GetValue())))
+                self.DIO._proxy.write_line(line, button.GetValue())
 
 
     # def getHandlers(self):
