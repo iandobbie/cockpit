@@ -588,6 +588,7 @@ class MicroscopeStage(MicroscopeBase):
 class MicroscopeDIO(MicroscopeBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+    
 
     def initialize(self) -> None:
         super().initialize()
@@ -595,17 +596,33 @@ class MicroscopeDIO(MicroscopeBase):
         #cache which we can read from if we dont want a roundtrip
         #to the remote.
         self.cache=[None]*self.numLines
-
+        self.labels = [""]*self.numLines
+        
         #read config entries if they exisit to
         IOMap = self.config.get('IOMap',None)
+        labels = self.config.get('labels',None)
+        paths = self.config.get('paths',None)
         if IOMap:
             self._proxy.set_all_IO_state(IOMap)
-
+        ##extract names of lines from file
+        ## this needs exactly the same number of lables as lines. Not a
+        ## robust design... should fix
+        if labels:
+            self.labels=labels.split("\n")
+        else:
+            for i in range(self.numLines):
+                self.labels[i]=str(i)
+        # extract defined paths
+        print (paths)
+        if paths:
+            self.paths=eval(paths)
+        else:
+            self.paths={}
+            
     def read_line(self, line: int, cache=False) -> int:
         if cache:
             return cahce[line]
         return self._proxy.read_line(line)
-
 
     def write_line(self, line: int, state: bool) -> None:
         self._proxy.write_line(line,state)
@@ -620,13 +637,47 @@ class MicroscopeDIO(MicroscopeBase):
     def showDebugWindow(self):
         DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
     
+    ### UI functions ###
+    def makeUI(self, parent):
+        self.panel = wx.Panel(parent)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.pathNameToButton={}
+        for key in self.paths.keys():
+            button = wx.ToggleButton(self.panel, wx.ID_ANY)
+            button.SetLabel(key)
+            button.Bind(wx.EVT_TOGGLEBUTTON,
+                        lambda evt,b=button: self.togglePaths(b))
+            sizer.Add(button, 1, wx.EXPAND)
+            self.pathNameToButton[key]=button
+        self.panel.SetSizerAndFit(sizer)
+        return self.panel
 
+    def togglePaths(self,button):
+        path=button.Label
+        if button.GetValue():
+            #button is active so set the relevant DIO lines
+            #take settings for this path
+            settings=self.paths[path]
+            for object in settings.keys():
+                #loop through settings and set each named object to that state.
+                self.write_line(self.labels.index(object),
+                                settings[object])
+                print(path,self._proxy.read_all_lines())
+            #Need some way to define exclusive and non-exclusive paths
+            #assume they are exclusive for now.
+            for key in self.pathNameToButton.keys():
+                if(key!=path):
+                    self.pathNameToButton[key].SetValue(False)
+            
+
+
+
+        
 ## This debugging window lets each digital lineout of the DIO device
 ## be manipulated individually.
 
 class DIOOutputWindow(wx.Frame):
     def __init__(self, DIO, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
         ## piDevice instance.
         self.DIO = DIO
         # Contains all widgets.
@@ -635,10 +686,8 @@ class DIOOutputWindow(wx.Frame):
         toggleSizer = wx.GridSizer(1, DIO.numLines, 1, 1)
         buttonSizer = wx.GridSizer(1, DIO.numLines, 1, 1)
 
-
         ## Maps buttons to their lines.
         self.lineToButton = {}
-
         self.state=self.DIO._proxy.read_all_lines()
         # Set up the digital lineout buttons.
         for i in range(DIO.numLines) :
@@ -646,22 +695,28 @@ class DIOOutputWindow(wx.Frame):
             toggle = wx.ToggleButton(panel, wx.ID_ANY)
             toggle.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggleState())
             toggleSizer.Add(toggle, 1, wx.EXPAND)
-            state=self.DIO.get_IO_state(i)
-            toggle.SetValue(state)
-            if state:
+            ioState=self.DIO.get_IO_state(i)
+            toggle.SetValue(ioState)
+            if ioState:
                 toggle.SetLabel("Output")
             else:
                 toggle.SetLabel("Input")
             #Button to toggle state of ourput lines.
-            button = wx.ToggleButton(panel, wx.ID_ANY, str(i))
+            button = wx.ToggleButton(panel, wx.ID_ANY, DIO.labels[i])
             button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggle())
             buttonSizer.Add(button, 1, wx.EXPAND)
             self.lineToButton[i] = [toggle,button]
-            if (self.state[i]==None):
+            if (ioState==False):
                 #need to do something like colour the button red
                 button.Disable()
             else:
+                button.Enable()
+            if (self.state[i] is not None):
                 button.SetValue(self.state[i])
+            else:
+                #if no state reported from remote set to false
+                button.SetValue(False)
+                
         mainSizer.Add(toggleSizer)
         mainSizer.Add(buttonSizer)
         panel.SetSizerAndFit(mainSizer)
@@ -673,6 +728,9 @@ class DIOOutputWindow(wx.Frame):
         for line, (toggle, button)  in self.lineToButton.items():
             if (self.DIO.get_IO_state(line)):
                 self.DIO._proxy.write_line(line, button.GetValue())
+            else:
+                #read input state.
+                button.SetValue=self.DIO._proxy.read_line(line)
 
     ## One of our buttons was clicked; update the debug output.
     def toggleState(self):
@@ -682,33 +740,12 @@ class DIOOutputWindow(wx.Frame):
             if state:
                 button.Enable()
                 toggle.SetLabel("Output")
+                button.SetLabel(self.DIO.labels[line])
             else:
                 button.Disable()
                 toggle.SetLabel("Input")
-
-
-    # def getHandlers(self):
-    #     """Return device handlers."""
-    #     h = cockpit.handlers.filterHandler.FilterHandler(self.name, 'filters', False,
-    #                                              {'setPosition': self.setPosition,
-    #                                               'getPosition': self.getPosition,
-    #                                               'getFilters': self.getFilters},
-    #                                              self.cameras,
-    #                                              self.lights)
-    #     self.handlers = [h]
-    #     return self.handlers
-
-
-    # def setPosition(self, position, callback=None):
-    #     asproxy = Pyro4.Proxy(self._proxy._pyroUri)
-    #     asproxy._pyroAsync()
-    #     result = asproxy.set_position(position).then(callback)
-
-
-    # def getPosition(self):
-    #     return self._proxy.get_position()
-
-
-    # def getFilters(self):
-    #     return self.filters
-    
+                state=self.DIO.read_line(line)
+                if state:
+                    button.SetLabel("True")
+                else:
+                    button.SetLabel("False")
