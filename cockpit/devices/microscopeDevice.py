@@ -586,9 +586,10 @@ class MicroscopeStage(MicroscopeBase):
         return [x.getHandler() for x in self._axes]
 
 class MicroscopeDIO(MicroscopeBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    
+    def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
+        super().__init__(name, config)
+   #    def __init__(self, *args, **kwargs):
+   #     super().__init__()
 
     def initialize(self) -> None:
         super().initialize()
@@ -636,43 +637,17 @@ class MicroscopeDIO(MicroscopeBase):
     ## Debugging function: display a debug window.
     def showDebugWindow(self):
         DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
-    
-    ### UI functions ###
-    def makeUI(self, parent):
-        self.panel = wx.Panel(parent)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.pathNameToButton={}
-        for key in self.paths.keys():
-            button = wx.ToggleButton(self.panel, wx.ID_ANY)
-            button.SetLabel(key)
-            button.Bind(wx.EVT_TOGGLEBUTTON,
-                        lambda evt,b=button: self.togglePaths(b))
-            sizer.Add(button, 1, wx.EXPAND)
-            self.pathNameToButton[key]=button
-        self.panel.SetSizerAndFit(sizer)
-        return self.panel
 
-    def togglePaths(self,button):
-        path=button.Label
-        if button.GetValue():
-            #button is active so set the relevant DIO lines
-            #take settings for this path
-            settings=self.paths[path]
-            for object in settings.keys():
-                #loop through settings and set each named object to that state.
-                self.write_line(self.labels.index(object),
-                                settings[object])
-                print(path,self._proxy.read_all_lines())
-            #Need some way to define exclusive and non-exclusive paths
-            #assume they are exclusive for now.
-            for key in self.pathNameToButton.keys():
-                if(key!=path):
-                    self.pathNameToButton[key].SetValue(False)
-            
+    def getHandlers(self):
+        """Return device handlers."""
+        ##nneds functions to get and set signals for save and load
+        ##channel functionality. 
+        h = cockpit.handlers.digitalioHandler.DigitialIOHandler(self.name, 'DIO',
+                            {'setOutputs': self.write_all_lines,
+                             'getOutputs': self.read_all_lines})
+        self.handlers = [h]
+        return self.handlers
 
-
-
-        
 ## This debugging window lets each digital lineout of the DIO device
 ## be manipulated individually.
 
