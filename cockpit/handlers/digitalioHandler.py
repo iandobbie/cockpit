@@ -58,15 +58,20 @@ import cockpit.util.threads
 
 class DigitalIOHandler(deviceHandler.DeviceHandler):
     """A handler for Digital IO devcies."""
-    def __init__(self, name, groupName, callbacks):
-        super().__init__(name, groupName, callbacks)
-
+    def __init__(self, name, groupName, isEligibleForExperiments, callbacks):
+        super().__init__(name, groupName, isEligibleForExperiments,
+                         callbacks, depot.DIO)
+    @property
+    def paths(self):
+        return self.callbacks['getPaths']()
+        
     def onSaveSettings(self):
         return self.callbacks['getOutputs']()
 
     def onLoadSettings(self, settings):
         print ("onLoad:",settings)
         return self.callbacks['getOutputs'](settings)
+
 
        ### UI functions ###
     def makeUI(self, parent):
@@ -89,16 +94,18 @@ class DigitalIOHandler(deviceHandler.DeviceHandler):
             #button is active so set the relevant DIO lines
             #take settings for this path
             settings=self.paths[path]
-            for object in settings.keys():
+            #loop throught DIO settings.
+            for object in settings[0].keys():
+                labels=self.callbacks['get labels']()
+                line=labels.index(object)
                 #loop through settings and set each named object to that state.
-                self.write_line(self.labels.index(object),
-                                settings[object])
-                print(path,self._proxy.read_all_lines())
+                self.callbacks['write line'](line, settings[0][object])
+#                print(path,self.callbacks['getOutputs']())
             #Need some way to define exclusive and non-exclusive paths
             #assume they are exclusive for now.
-            for key in self.pathNameToButton.keys():
-                if(key!=path):
-                    self.pathNameToButton[key].SetValue(False)
+            otherbuttons=settings[1]
+            for key in otherbuttons.keys():
+                self.pathNameToButton[key].SetValue(otherbuttons[key])
 
     @cockpit.util.threads.callInMainThread
     def updateAfterChange(self,*args):

@@ -55,6 +55,7 @@ import cockpit.handlers.deviceHandler
 import cockpit.handlers.filterHandler
 import cockpit.handlers.lightPower
 import cockpit.handlers.lightSource
+import cockpit.handlers.digitalioHandler
 import cockpit.util.colors
 import cockpit.util.userConfig
 import cockpit.util.threads
@@ -625,9 +626,17 @@ class MicroscopeDIO(MicroscopeBase):
             return cahce[line]
         return self._proxy.read_line(line)
 
+    def read_all_lines(self, cache=False):
+        if cache:
+            return cache
+        return self._proxy.read_all_lines()
+    
     def write_line(self, line: int, state: bool) -> None:
         self._proxy.write_line(line,state)
 
+    def write_all_lines(self, array):
+        self._proxy.write_all_lines(array)
+        
     def get_IO_state(self,line):
         return(self._proxy.get_IO_state(line))
         
@@ -642,12 +651,22 @@ class MicroscopeDIO(MicroscopeBase):
         """Return device handlers."""
         ##nneds functions to get and set signals for save and load
         ##channel functionality. 
-        h = cockpit.handlers.digitalioHandler.DigitialIOHandler(self.name, 'DIO',
+        h = cockpit.handlers.digitalioHandler.DigitalIOHandler(self.name,
+                             'DIO', False, 
                             {'setOutputs': self.write_all_lines,
-                             'getOutputs': self.read_all_lines})
+                             'getOutputs': self.read_all_lines,
+                             'getPaths': self.getPaths,
+                             'write line': self.write_line,
+                             'get labels': self.getLabels})
         self.handlers = [h]
         return self.handlers
 
+    def getLabels(self):
+        return self.labels
+    
+    def getPaths(self):
+        return self.paths
+    
 ## This debugging window lets each digital lineout of the DIO device
 ## be manipulated individually.
 
