@@ -597,7 +597,7 @@ class MicroscopeDIO(MicroscopeBase):
         self.numLines=self._proxy.get_num_lines()
         #cache which we can read from if we dont want a roundtrip
         #to the remote.
-        self.cache=[None]*self.numLines
+        self._cache=[None]*self.numLines
         self.labels = [""]*self.numLines
         
         #read config entries if they exisit to
@@ -623,19 +623,29 @@ class MicroscopeDIO(MicroscopeBase):
             
     def read_line(self, line: int, cache=False) -> int:
         if cache:
-            return cahce[line]
-        return self._proxy.read_line(line)
+            return self._cache[line]
+        state = self._proxy.read_line(line)
+        events.publish(events.DIO_INPUT,line,state)
+        return state
 
     def read_all_lines(self, cache=False):
         if cache:
-            return cache
-        return self._proxy.read_all_lines()
+            return self._cache
+        states=self._proxy.read_all_lines()
+        for i in range(len(states)):
+            events.publish(events.DIO_INPUT,i,states[i])
+        return (states)
     
     def write_line(self, line: int, state: bool) -> None:
         self._proxy.write_line(line,state)
+        events.publish(events.DIO_OUTPUT,line,state)
 
     def write_all_lines(self, array):
         self._proxy.write_all_lines(array)
+        self._cache=array
+        for i in range(len(array)):
+            events.publish(events.DIO_OUTPUT,i,array[i])
+        
         
     def get_IO_state(self,line):
         return(self._proxy.get_IO_state(line))
@@ -672,6 +682,8 @@ class MicroscopeDIO(MicroscopeBase):
 
 class DIOOutputWindow(wx.Frame):
     def __init__(self, DIO, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
         ## piDevice instance.
         self.DIO = DIO
         # Contains all widgets.
@@ -716,6 +728,17 @@ class DIOOutputWindow(wx.Frame):
         panel.SetSizerAndFit(mainSizer)
         self.SetClientSize(panel.GetSize())
 
+        events.subscribe(events.DIO_OUTPUT,self.outputChanged)
+        events.subscribe(events.DIO_INPUT,self.inputChanged)
+
+    #functions to updated chaces and GUI displays when DIO state chnages. 
+    def outputChanged(self,line,state):
+        self.lineToButton[line][1].SetValue(state)
+        self.DIO._cache[line]=state
+
+    def inputChanged(self,line,state):
+        self.lineToButton[line][1].SetValue(state)
+        self.DIO._cache[line]=state
 
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
@@ -725,6 +748,7 @@ class DIOOutputWindow(wx.Frame):
             else:
                 #read input state.
                 button.SetValue=self.DIO._proxy.read_line(line)
+                
 
     ## One of our buttons was clicked; update the debug output.
     def toggleState(self):
