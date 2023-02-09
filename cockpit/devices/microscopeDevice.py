@@ -623,7 +623,6 @@ class MicroscopeDIO(MicroscopeBase):
             for i in range(self.numLines):
                 self.labels[i]=str(i)
         # extract defined paths
-        print (paths)
         if paths:
             self.paths=eval(paths)
         else:
@@ -719,7 +718,6 @@ class DIOOutputWindow(wx.Frame):
             toggle.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.updateState())
             toggleSizer.Add(toggle, 1, wx.EXPAND)
             ioState=self.DIO.get_IO_state(i)
-            print (i,ioState)
             toggle.SetValue(ioState)
             if ioState:
                 toggle.SetLabel("Output")
@@ -761,7 +759,6 @@ class DIOOutputWindow(wx.Frame):
         
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
-        print ("toggle")
         for line, (toggle, button)  in self.lineToButton.items():
             if (self.DIO.get_IO_state(line)):
                 self.DIO.write_line(line, button.GetValue())
@@ -772,7 +769,6 @@ class DIOOutputWindow(wx.Frame):
 
     ## One of our buttons was clicked; update the debug output.
     def updateState(self):
-        print ("updatestate")
         for line, (toggle, button)  in self.lineToButton.items():
             state=toggle.GetValue()
             self.DIO.set_IO_state(line, state)
