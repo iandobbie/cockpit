@@ -601,11 +601,19 @@ class MicroscopeDIO(MicroscopeBase):
         self.labels = [""]*self.numLines
         
         #read config entries if they exisit to
-        IOMap = self.config.get('IOMap',None)
+        iomapConfig = self.config.get('iomap',[None]*self.numLines)
+        if iomapConfig[0] is not None:
+            #config is deifned so read it into a bool variable,
+            # else it is all [Nones]
+            iomap=iomapConfig.split(',')
+            self.IOMap=[None]*len(iomap)
+            for i,state in enumerate(iomap):
+                self.IOMap[i]=bool(int(state))
         labels = self.config.get('labels',None)
         paths = self.config.get('paths',None)
-        if IOMap:
-            self._proxy.set_all_IO_state(IOMap)
+        
+        if self.IOMap:
+            self._proxy.set_all_IO_state(self.IOMap)
         ##extract names of lines from file
         ## this needs exactly the same number of lables as lines. Not a
         ## robust design... should fix
@@ -621,11 +629,14 @@ class MicroscopeDIO(MicroscopeBase):
         else:
             self.paths={}
             
-    def read_line(self, line: int, cache=False) -> int:
+    def read_line(self, line: int, cache=False, updateGUI=True) -> int:
         if cache:
             return self._cache[line]
         state = self._proxy.read_line(line)
-        events.publish(events.DIO_INPUT,line,state)
+        if updateGUI:
+            #prevent a loop by calling this read line in the button
+            #toggle code
+            events.publish(events.DIO_INPUT,line,state)
         return state
 
     def read_all_lines(self, cache=False):
@@ -647,15 +658,21 @@ class MicroscopeDIO(MicroscopeBase):
             events.publish(events.DIO_OUTPUT,i,array[i])
         
         
-    def get_IO_state(self,line):
-        return(self._proxy.get_IO_state(line))
+    def get_IO_state(self,line, cache=False):
+        if cache:
+            return(self.IOMap[line])
+        state=self._proxy.get_IO_state(line)
+        self.IOMap[line] = state
+        return(state)
+    
         
     def set_IO_state(self,line,state):
+        self.IOMap[line] = state
         self._proxy.set_IO_state(line,state)
 
     ## Debugging function: display a debug window.
     def showDebugWindow(self):
-        DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
+        self.DIOdebugWindow=DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
 
     def getHandlers(self):
         """Return device handlers."""
@@ -699,62 +716,66 @@ class DIOOutputWindow(wx.Frame):
         for i in range(DIO.numLines) :
             #state of IO , output or Input
             toggle = wx.ToggleButton(panel, wx.ID_ANY)
-            toggle.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggleState())
+            toggle.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.updateState())
             toggleSizer.Add(toggle, 1, wx.EXPAND)
             ioState=self.DIO.get_IO_state(i)
+            print (i,ioState)
             toggle.SetValue(ioState)
             if ioState:
                 toggle.SetLabel("Output")
             else:
                 toggle.SetLabel("Input")
-            #Button to toggle state of ourput lines.
+            #Button to toggle state of output lines.
             button = wx.ToggleButton(panel, wx.ID_ANY, DIO.labels[i])
             button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggle())
             buttonSizer.Add(button, 1, wx.EXPAND)
             self.lineToButton[i] = [toggle,button]
-            if (ioState==False):
-                #need to do something like colour the button red
-                button.Disable()
-            else:
-                button.Enable()
             if (self.state[i] is not None):
                 button.SetValue(self.state[i])
             else:
                 #if no state reported from remote set to false
                 button.SetValue(False)
+            if (ioState==False):
+                #need to do something like colour the button red
+                button.Disable()
+            else:
+                button.Enable()
                 
         mainSizer.Add(toggleSizer)
         mainSizer.Add(buttonSizer)
         panel.SetSizerAndFit(mainSizer)
         self.SetClientSize(panel.GetSize())
-
         events.subscribe(events.DIO_OUTPUT,self.outputChanged)
         events.subscribe(events.DIO_INPUT,self.inputChanged)
 
     #functions to updated chaces and GUI displays when DIO state chnages. 
     def outputChanged(self,line,state):
-        self.lineToButton[line][1].SetValue(state)
-        self.DIO._cache[line]=state
+        #check this is an output line
+        if self.DIO.IOMap:
+            self.lineToButton[line][1].SetValue(state)
+            self.DIO._cache[line]=state
 
     def inputChanged(self,line,state):
-        self.lineToButton[line][1].SetValue(state)
-        self.DIO._cache[line]=state
-
+        # I think we need to check input versus output state.
+        self.updateState()
+        
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
+        print ("toggle")
         for line, (toggle, button)  in self.lineToButton.items():
             if (self.DIO.get_IO_state(line)):
-                self.DIO._proxy.write_line(line, button.GetValue())
+                self.DIO.write_line(line, button.GetValue())
             else:
                 #read input state.
-                button.SetValue=self.DIO._proxy.read_line(line)
+                button.SetValue=self.DIO.read_line(line,updateGUI=False)
                 
 
     ## One of our buttons was clicked; update the debug output.
-    def toggleState(self):
+    def updateState(self):
+        print ("updatestate")
         for line, (toggle, button)  in self.lineToButton.items():
             state=toggle.GetValue()
-            self.DIO._proxy.set_IO_state(line, state)
+            self.DIO.set_IO_state(line, state)
             if state:
                 button.Enable()
                 toggle.SetLabel("Output")
@@ -762,7 +783,7 @@ class DIOOutputWindow(wx.Frame):
             else:
                 button.Disable()
                 toggle.SetLabel("Input")
-                state=self.DIO.read_line(line)
+                state=self.DIO.read_line(line,updateGUI = False)
                 if state:
                     button.SetLabel("True")
                 else:
