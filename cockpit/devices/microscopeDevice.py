@@ -587,10 +587,17 @@ class MicroscopeStage(MicroscopeBase):
         return [x.getHandler() for x in self._axes]
 
 class MicroscopeDIO(MicroscopeBase):
+    """Device class for asynchronous Digital Inout and Output signals.
+    This class enables the configuration of named buttons in main GUI window
+    to control for situation such a switchable excitation paths.
+
+    Additionally it provides a debug window which allow control of the 
+    state of all output lines and the direction (input or output) of each 
+    control line assuming the hardware support this.
+    """
+    
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
         super().__init__(name, config)
-   #    def __init__(self, *args, **kwargs):
-   #     super().__init__()
 
     def initialize(self) -> None:
         super().initialize()
@@ -599,6 +606,7 @@ class MicroscopeDIO(MicroscopeBase):
         #to the remote.
         self._cache=[None]*self.numLines
         self.labels = [""]*self.numLines
+        self.IOMap = [None]*self.numLines
         
         #read config entries if they exisit to
         iomapConfig = self.config.get('iomap',[None]*self.numLines)
@@ -606,13 +614,13 @@ class MicroscopeDIO(MicroscopeBase):
             #config is deifned so read it into a bool variable,
             # else it is all [Nones]
             iomap=iomapConfig.split(',')
-            self.IOMap=[None]*len(iomap)
             for i,state in enumerate(iomap):
                 self.IOMap[i]=bool(int(state))
         labels = self.config.get('labels',None)
         paths = self.config.get('paths',None)
         
-        if self.IOMap:
+        if self.IOMap[0] is not None:
+            #first entry is None so no map defined
             self._proxy.set_all_IO_state(self.IOMap)
         ##extract names of lines from file
         ## this needs exactly the same number of lables as lines. Not a
@@ -692,6 +700,22 @@ class MicroscopeDIO(MicroscopeBase):
     
     def getPaths(self):
         return self.paths
+
+
+    def receiveData(self, *args):
+        """This function is called when input line state is received from 
+        the hardware."""
+        (line, state) = args
+        #State changed send event to interested parties.
+        if self.IOMap[line]:
+            #this is meant to be an output line!
+            raise Exception('Input signal received on an output digital line')
+        self._cache[line]=state
+        events.publish(events.DIO_INPUT,line,state)
+        
+        
+
+
     
 ## This debugging window lets each digital lineout of the DIO device
 ## be manipulated individually.
