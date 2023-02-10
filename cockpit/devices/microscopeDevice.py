@@ -521,6 +521,22 @@ class MicroscopeStage(MicroscopeBase):
     def initialize(self) -> None:
         super().initialize()
 
+        if self._proxy.may_move_on_enable():
+            # Motors will home during enable.
+            title = "Stage needs to move"
+            msg = (
+                "The '%s' stage needs to find the home position."
+                " Homing may move it so please ensure that there are"
+                " no obstructions, then press 'OK' to home the stage."
+                " If you press 'Cancel' the stage will not be homed"
+                " and its behaviour will be unpredictable."
+                % (self.name)
+            )
+            if cockpit.gui.guiUtils.getUserPermission(msg, title):
+                 self._proxy.enable()
+        else:
+            self._proxy.enable()
+
         # The names of the axiss we have already configured, to avoid
         # handling the same one under different names, and to ensure
         # that we have all axis configured.
@@ -563,25 +579,6 @@ class MicroscopeStage(MicroscopeBase):
                 raise Exception('No configuration for the axis named \'%s\''
                                 % their_axis_name)
 
-        if self._proxy.may_move_on_enable():
-            # Motors will home during enable.
-            title = "Stage needs to move"
-            msg = (
-                "The '%s' stage needs to find the home position."
-                " Homing may move it so please ensure that there are"
-                " no obstructions, then press 'OK' to home the stage."
-                " If you press 'Cancel' the stage will not be homed"
-                " and its behaviour will be unpredictable."
-                % (self.name)
-            )
-            if cockpit.gui.guiUtils.getUserPermission(msg, title):
-                 self._proxy.enable()
-                 #now reset hardLimits
-                 for axis in self._axes:
-                     handler=axis.getHandler()
-                     handler.hardLimits=axis._axis.limits
-                     handler.softLimits=handler.hardLimits
-
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
         return [x.getHandler() for x in self._axes]
@@ -595,7 +592,7 @@ class MicroscopeDIO(MicroscopeBase):
     state of all output lines and the direction (input or output) of each 
     control line assuming the hardware support this.
     """
-    
+
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
         super().__init__(name, config)
 
@@ -607,7 +604,7 @@ class MicroscopeDIO(MicroscopeBase):
         self._cache=[None]*self.numLines
         self.labels = [""]*self.numLines
         self.IOMap = [None]*self.numLines
-        
+
         #read config entries if they exisit to
         iomapConfig = self.config.get('iomap',[None]*self.numLines)
         if iomapConfig[0] is not None:
@@ -618,7 +615,7 @@ class MicroscopeDIO(MicroscopeBase):
                 self.IOMap[i]=bool(int(state))
         labels = self.config.get('labels',None)
         paths = self.config.get('paths',None)
-        
+
         if self.IOMap[0] is not None:
             #first entry is None so no map defined
             self._proxy.set_all_IO_state(self.IOMap)
@@ -635,7 +632,7 @@ class MicroscopeDIO(MicroscopeBase):
             self.paths=eval(paths)
         else:
             self.paths={}
-            
+
     def read_line(self, line: int, cache=False, updateGUI=True) -> int:
         if cache:
             return self._cache[line]
@@ -653,7 +650,7 @@ class MicroscopeDIO(MicroscopeBase):
         for i in range(len(states)):
             events.publish(events.DIO_INPUT,i,states[i])
         return (states)
-    
+
     def write_line(self, line: int, state: bool) -> None:
         self._proxy.write_line(line,state)
         events.publish(events.DIO_OUTPUT,line,state)
@@ -663,16 +660,14 @@ class MicroscopeDIO(MicroscopeBase):
         self._cache=array
         for i in range(len(array)):
             events.publish(events.DIO_OUTPUT,i,array[i])
-        
-        
+
     def get_IO_state(self,line, cache=False):
         if cache:
             return(self.IOMap[line])
         state=self._proxy.get_IO_state(line)
         self.IOMap[line] = state
         return(state)
-    
-        
+
     def set_IO_state(self,line,state):
         self.IOMap[line] = state
         self._proxy.set_IO_state(line,state)
@@ -697,10 +692,9 @@ class MicroscopeDIO(MicroscopeBase):
 
     def getLabels(self):
         return self.labels
-    
+
     def getPaths(self):
         return self.paths
-
 
     def receiveData(self, *args):
         """This function is called when input line state is received from 
@@ -712,11 +706,7 @@ class MicroscopeDIO(MicroscopeBase):
             raise Exception('Input signal received on an output digital line')
         self._cache[line]=state
         events.publish(events.DIO_INPUT,line,state)
-        
-        
 
-
-    
 ## This debugging window lets each digital lineout of the DIO device
 ## be manipulated individually.
 
@@ -762,7 +752,7 @@ class DIOOutputWindow(wx.Frame):
                 button.Disable()
             else:
                 button.Enable()
-                
+
         mainSizer.Add(toggleSizer)
         mainSizer.Add(buttonSizer)
         panel.SetSizerAndFit(mainSizer)
@@ -780,7 +770,7 @@ class DIOOutputWindow(wx.Frame):
     def inputChanged(self,line,state):
         # I think we need to check input versus output state.
         self.updateState()
-        
+
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
         for line, (toggle, button)  in self.lineToButton.items():
@@ -789,7 +779,6 @@ class DIOOutputWindow(wx.Frame):
             else:
                 #read input state.
                 button.SetValue=self.DIO.read_line(line,updateGUI=False)
-                
 
     ## One of our buttons was clicked; update the debug output.
     def updateState(self):
