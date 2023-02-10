@@ -47,6 +47,7 @@ import typing
 
 import Pyro4
 import wx
+import time
 from cockpit import events
 from cockpit.devices import device
 from cockpit import depot
@@ -59,6 +60,7 @@ import cockpit.handlers.digitalioHandler
 import cockpit.util.colors
 import cockpit.util.userConfig
 import cockpit.util.threads
+import cockpit.util.listener
 from cockpit.gui.device import SettingsEditor
 from cockpit.handlers.stagePositioner import PositionerHandler
 from cockpit.interfaces import stageMover
@@ -632,6 +634,12 @@ class MicroscopeDIO(MicroscopeBase):
             self.paths=eval(paths)
         else:
             self.paths={}
+        # Lister to receive data back from hardware
+        self.listener = cockpit.util.listener.Listener(self._proxy,
+                                               lambda *args:
+                                                       self.receiveData(*args))
+        time.sleep(2)
+        self.listener.connect()
 
     def read_line(self, line: int, cache=False, updateGUI=True) -> int:
         if cache:
@@ -699,7 +707,7 @@ class MicroscopeDIO(MicroscopeBase):
     def receiveData(self, *args):
         """This function is called when input line state is received from 
         the hardware."""
-        (line, state) = args
+        ((line,state),timestamp) = args
         #State changed send event to interested parties.
         if self.IOMap[line]:
             #this is meant to be an output line!
@@ -769,7 +777,7 @@ class DIOOutputWindow(wx.Frame):
 
     def inputChanged(self,line,state):
         # I think we need to check input versus output state.
-        self.updateState()
+        self.updateState(line,state)
 
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
@@ -781,8 +789,13 @@ class DIOOutputWindow(wx.Frame):
                 button.SetValue=self.DIO.read_line(line,updateGUI=False)
 
     ## One of our buttons was clicked; update the debug output.
-    def updateState(self):
-        for line, (toggle, button)  in self.lineToButton.items():
+    @cockpit.util.threads.callInMainThread
+    def updateState(self,line = None,state = None):
+         if (line is not None) and (state is not None):
+             self.lineToButton[line][1].SetLabel(str(state))
+#            self.lineToButton[line][1].GetParent().Refresh()
+             return()
+         for line, (toggle, button)  in self.lineToButton.items():
             state=toggle.GetValue()
             self.DIO.set_IO_state(line, state)
             if state:
