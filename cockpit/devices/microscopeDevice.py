@@ -579,6 +579,7 @@ class MicroscopeStage(MicroscopeBase):
                 raise Exception('No configuration for the axis named \'%s\''
                                 % their_axis_name)
 
+
     def getHandlers(self) -> typing.List[PositionerHandler]:
         # Override MicroscopeBase.getHandlers.  Do not call super.
         return [x.getHandler() for x in self._axes]
