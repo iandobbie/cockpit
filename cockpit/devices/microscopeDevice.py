@@ -758,6 +758,7 @@ class DIOOutputWindow(wx.Frame):
             if (ioState==False):
                 #need to do something like colour the button red
                 button.Disable()
+                button.SetLabel(str(self.DIO.read_line(i)))
             else:
                 button.Enable()
 
@@ -793,7 +794,6 @@ class DIOOutputWindow(wx.Frame):
     def updateState(self,line = None,state = None):
          if (line is not None) and (state is not None):
              self.lineToButton[line][1].SetLabel(str(state))
-#            self.lineToButton[line][1].GetParent().Refresh()
              return()
          for line, (toggle, button)  in self.lineToButton.items():
             state=toggle.GetValue()
