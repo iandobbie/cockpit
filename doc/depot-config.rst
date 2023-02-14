@@ -223,7 +223,33 @@ fields so can be used to tag specific objectives, or objective types.
   colour:(1,0,0)
   lensID: 10118
 
-    
+
+Digitial IO
+```````````
+
+The Digital IO device type is for input and output digital signals
+that are not required to be synchronised with other controls for
+experimental purposes. The controls therefor don't have hard timing
+expectations and typically are used for control over microscope
+features like switching illumination or emission beam paths.
+
+The config allows defining which lines are input and which output,
+naming of specific lines labels and the definition of buttons to allow
+the setting of specific output lines to specific states, as well as
+forcing the activation, or deactivation of other buttons. For instance
+this could be used to switch excitation beam paths between and
+Widefield and SIM states, which them being mutually exclusive. See the
+example code:
+
+.. code:: ini
+
+labels: Mirror1
+	Mirror2
+	In1
+	In2
+paths:{ "Widefield": [{"Mirror1": True, "Mirror2": False}, {"SIM": False}],
+      "SIM": [{"Mirror1": False, "Mirror2": True}, {"Widefield": False}]}
+IOMap:1,1,0,0
   
 Additional specific parameters
 ``````````````````````````````
