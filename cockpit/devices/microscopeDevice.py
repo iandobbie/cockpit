@@ -638,8 +638,8 @@ class MicroscopeDIO(MicroscopeBase):
         self.listener = cockpit.util.listener.Listener(self._proxy,
                                                lambda *args:
                                                        self.receiveData(*args))
-        time.sleep(2)
-        self.listener.connect()
+#        time.sleep(2)
+#        self.listener.connect()
 
     def read_line(self, line: int, cache=False, updateGUI=True) -> int:
         if cache:
@@ -680,6 +680,16 @@ class MicroscopeDIO(MicroscopeBase):
         self.IOMap[line] = state
         self._proxy.set_IO_state(line,state)
 
+    def enable(self,state):
+        if state:
+            self._proxy.enable()
+            self.listener.connect()
+            return(True)
+        else:
+            self._proxy.disable()
+            self.listener.disconnect()
+            return(False)
+
     ## Debugging function: display a debug window.
     def showDebugWindow(self):
         self.DIOdebugWindow=DIOOutputWindow(self, parent=wx.GetApp().GetTopWindow()).Show()
@@ -694,7 +704,8 @@ class MicroscopeDIO(MicroscopeBase):
                              'getOutputs': self.read_all_lines,
                              'getPaths': self.getPaths,
                              'write line': self.write_line,
-                             'get labels': self.getLabels})
+                             'get labels': self.getLabels,
+                             'enable': self.enable})
         self.handlers = [h]
         return self.handlers
 
