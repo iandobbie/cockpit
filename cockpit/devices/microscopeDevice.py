@@ -625,7 +625,7 @@ class MicroscopeDIO(MicroscopeBase):
         ## this needs exactly the same number of lables as lines. Not a
         ## robust design... should fix
         if labels:
-            self.labels=labels.split("\n")
+            self.labels=eval(labels)
         else:
             for i in range(self.numLines):
                 self.labels[i]=str(i)

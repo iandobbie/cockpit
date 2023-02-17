@@ -224,7 +224,7 @@ fields so can be used to tag specific objectives, or objective types.
   lensID: 10118
 
 
-Digitial IO
+Digital IO
 ```````````
 
 The Digital IO device type is for input and output digital signals
@@ -238,18 +238,19 @@ naming of specific lines labels and the definition of buttons to allow
 the setting of specific output lines to specific states, as well as
 forcing the activation, or deactivation of other buttons. For instance
 this could be used to switch excitation beam paths between and
-Widefield and SIM states, which them being mutually exclusive. See the
-example code:
+Widefield and SIM states, which are mutually exclusive.
+
+The label array and paths dictionary are directly eval'd, and example
+config file for 4 line, the first 2 are output and the last 2 are
+input. See the example config entries:
 
 .. code:: ini
 
-labels: Mirror1
-	Mirror2
-	In1
-	In2
+IOMap:1,1,0,0
+labels: ["Mirror1","Mirror2","In1","In2"]
 paths:{ "Widefield": [{"Mirror1": True, "Mirror2": False}, {"SIM": False}],
       "SIM": [{"Mirror1": False, "Mirror2": True}, {"Widefield": False}]}
-IOMap:1,1,0,0
+
   
 Additional specific parameters
 ``````````````````````````````
