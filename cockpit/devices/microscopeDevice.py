@@ -784,12 +784,12 @@ class DIOOutputWindow(wx.Frame):
     def outputChanged(self,line,state):
         #check this is an output line
         if self.DIO.IOMap:
-            self.lineToButton[line][1].SetValue(state)
+            self.lineToButton[line][1].SetValue(bool(state))
             self.DIO._cache[line]=state
 
     def inputChanged(self,line,state):
         # I think we need to check input versus output state.
-        self.updateState(line,state)
+        self.updateState(line,bool(state))
 
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
@@ -818,6 +818,6 @@ class DIOOutputWindow(wx.Frame):
                 toggle.SetLabel("Input")
                 state=self.DIO.read_line(line,updateGUI = False)
                 if state:
-                    button.SetLabel("True")
+                    button.SetLabel("1")
                 else:
-                    button.SetLabel("False")
+                    button.SetLabel("0")
