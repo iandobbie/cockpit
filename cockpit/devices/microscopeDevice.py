@@ -670,7 +670,6 @@ class MicroscopeDIO(MicroscopeBase):
 
     def write_all_lines(self, array):
         self._proxy.write_all_lines(array)
-        self._cache=array
         for i in range(len(array)):
             events.publish(events.DIO_OUTPUT,i,array[i])
 
@@ -724,11 +723,10 @@ class MicroscopeDIO(MicroscopeBase):
         """This function is called when input line state is received from 
         the hardware."""
         ((line,state),timestamp) = args
-        #State changed send event to interested parties.
         if self.IOMap[line]:
             #this is meant to be an output line!
             raise Exception('Input signal received on an output digital line')
-        self._cache[line]=state
+        #State changed send event to interested parties.
         events.publish(events.DIO_INPUT,line,state)
 
 ## This debugging window lets each digital lineout of the DIO device
@@ -749,7 +747,6 @@ class DIOOutputWindow(wx.Frame):
         ## Maps buttons to their lines.
         self.lineToButton = {}
         self.state=self.DIO._proxy.read_all_lines()
-        print (self.state)
         # Set up the digital lineout buttons.
         for i in range(DIO.numLines) :
             #state of IO , output or Input
@@ -790,21 +787,19 @@ class DIOOutputWindow(wx.Frame):
     def outputChanged(self,line,state):
         #check this is an output line
         if self.DIO.IOMap:
-            print(line,state,self.lineToButton[line][1])
-            self.lineToButton[line][1].Enable()            
+            #log befroe we update cache to get sharp transitions.
+            self.DIO.logger.log(list(map(int,self.DIO._cache)))
             self.lineToButton[line][1].SetValue(state)
             self.DIO._cache[line]=state
             #need to map bool's to ints for valuelogviewer
             self.DIO.logger.log(list(map(int,self.DIO._cache)))
-            
+
     def inputChanged(self,line,state):
+        self.DIO.logger.log(list(map(int,self.DIO._cache)))
+        self.DIO._cache[line]=state
+        self.DIO.logger.log(list(map(int,self.DIO._cache)))
         # I think we need to check input versus output state.
         self.updateState(line,bool(state))
-        self.DIO._cache[line]=state
-        #need to map bool's to ints for valuelogviewer
-        self.DIO.logger.log(list(map(int,self.DIO._cache)))
-        
-        
 
     ## One of our buttons was clicked; update the debug output.
     def toggle(self):
