@@ -227,7 +227,10 @@ accessible regions from different objectives in the stage and mosaic
 views. Additionally, there is an offset parameter which enables
 difference between objective fields of view to be accounted for in
 stage position. The lensID parameter is stored in image file metadata
-fields so can be used to tag specific objectives, or objective types.
+fields so can be used to tag specific objectives, or objective
+types. The NA and immersionRI parameters allow cockpit to calculate
+the XY and Z resolution of the system and should be included in the
+output file metadata. 
 
 .. code:: ini
 
@@ -238,6 +241,8 @@ fields so can be used to tag specific objectives, or objective types.
   offset: (-34894, 320,-5955)
   colour:(1,0,0)
   lensID: 10118
+  NA: 0.45
+  immersionRI: 1.0
 
 
 Digital IO

@@ -70,7 +70,7 @@ class ObjectiveDevice(cockpit.devices.device.Device):
       The NA of the objective used to calculate resoltuion and best
       Z section size. Defaults to 0.
 
-    ''immersion'' (optional)
+    ''immersionRI'' (optional)
       The freactive index of the immersion media for Z resolution calculations.
       Defaults to 1.0 (air).
 
@@ -86,7 +86,7 @@ class ObjectiveDevice(cockpit.devices.device.Device):
         colour: (1.0, .5, .5)
         lensID: 10611
         NA: 1.1
-        immersion: 1.32
+        immersionRI: 1.32
     """
 
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
@@ -97,7 +97,7 @@ class ObjectiveDevice(cockpit.devices.device.Device):
         self._colour = (1.0, 1.0, 1.0)
         self._lens_ID = 0
         self._NA = 0
-        self._immersion = 1.0
+        self._immersionRI = 1.0
 
         if "lensid" in config:
             self._lens_ID = int(config["lensid"])
@@ -124,8 +124,8 @@ class ObjectiveDevice(cockpit.devices.device.Device):
         if "na" in config:
             self._NA = float(config["na"])
 
-        if "immersion" in config:
-            self._immersion = float(config["immersion"])
+        if "immersionri" in config:
+            self._immersionRI = float(config["immersionri"])
 
     def getHandlers(self) -> typing.List[ObjectiveHandler]:
         handler = ObjectiveHandler(
@@ -137,6 +137,6 @@ class ObjectiveDevice(cockpit.devices.device.Device):
             colour=self._colour,
             lens_ID=self._lens_ID,
             NA = self._NA,
-            immersion=self._immersion,
+            immersionRI=self._immersionRI,
         )
         return [handler]

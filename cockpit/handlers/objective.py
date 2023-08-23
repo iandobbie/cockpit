@@ -37,6 +37,7 @@ class ObjectiveHandler(cockpit.handlers.deviceHandler.DeviceHandler):
         colour:
         lens_ID:
         NA:
+        immersionRI:
     """
 
     def __init__(
@@ -49,7 +50,7 @@ class ObjectiveHandler(cockpit.handlers.deviceHandler.DeviceHandler):
         colour: typing.Tuple[float, float, float],
         lens_ID: int,
         NA: float,
-        immersion: float,
+        immersionRI: float,
     ) -> None:
         super().__init__(
             name,
@@ -64,7 +65,7 @@ class ObjectiveHandler(cockpit.handlers.deviceHandler.DeviceHandler):
         self.colour = colour
         self.lens_ID = lens_ID
         self.NA = NA
-        self.immersion = immersion
+        self.immersionRI = immersionRI
 
     def XYresolution(self, wavelength):
         if (self.NA != 0):
@@ -74,6 +75,6 @@ class ObjectiveHandler(cockpit.handlers.deviceHandler.DeviceHandler):
 
     def Zresolution(self, wavelength):
         if (self.NA != 0):
-            return ((wavelength*self.immersion) / (self.NA**2))
+            return ((wavelength*self.immersionRI) / (self.NA**2))
         else:
             return 0
