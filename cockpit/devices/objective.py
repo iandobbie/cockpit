@@ -66,6 +66,14 @@ class ObjectiveDevice(cockpit.devices.device.Device):
       Lens identification number, to be recorded on the saved dv/mrc
       files.  Defaults to `0`.
 
+    ''NA'' (optional)
+      The NA of the objective used to calculate resoltuion and best
+      Z section size. Defaults to 0.
+
+    ''immersion'' (optional)
+      The freactive index of the immersion media for Z resolution calculations.
+      Defaults to 1.0 (air).
+
     For example::
 
     .. code:: ini
@@ -77,7 +85,8 @@ class ObjectiveDevice(cockpit.devices.device.Device):
         offset: (-100, 50, 0)
         colour: (1.0, .5, .5)
         lensID: 10611
-
+        NA: 1.1
+        immersion: 1.32
     """
 
     def __init__(self, name: str, config: typing.Mapping[str, str]) -> None:
@@ -87,6 +96,8 @@ class ObjectiveDevice(cockpit.devices.device.Device):
         self._offset = (0, 0, 0)
         self._colour = (1.0, 1.0, 1.0)
         self._lens_ID = 0
+        self._NA = 0
+        self._immersion = 1.0
 
         if "lensid" in config:
             self._lens_ID = int(config["lensid"])
@@ -110,6 +121,11 @@ class ObjectiveDevice(cockpit.devices.device.Device):
                 raise ValueError(
                     "invalid colour config '%s'" % config["colour"]
                 )
+        if "na" in config:
+            self._NA = float(config["na"])
+
+        if "immersion" in config:
+            self._immersion = float(config["immersion"])
 
     def getHandlers(self) -> typing.List[ObjectiveHandler]:
         handler = ObjectiveHandler(
@@ -120,5 +136,7 @@ class ObjectiveDevice(cockpit.devices.device.Device):
             offset=self._offset,
             colour=self._colour,
             lens_ID=self._lens_ID,
+            NA = self._NA,
+            immersion=self._immersion,
         )
         return [handler]
