@@ -168,7 +168,12 @@ class ViewPanel(wx.Panel):
 
     ## Activate the view and connect to a data source.
     def enable(self, camera):
-        self.selector.SetLabel(camera.descriptiveName)
+        XYres=wx.GetApp().Objectives.GetCurrent().XYresolution(camera.wavelength)
+        pixelsize=wx.GetApp().Objectives.GetCurrent().pixel_size
+
+        self.selector.SetLabel(camera.descriptiveName+
+                               "Pixel Size = "+str(pixelsize)+
+                               "nm : XY res = "+str(XYres) + " nm")
         self.selector.SetBackgroundColour(camera.color)
         self.selector.Refresh()
         self.curCamera = camera
