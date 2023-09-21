@@ -35,6 +35,7 @@ import cockpit.util.listener
 import cockpit.util.logger
 import cockpit.util.threads
 import cockpit.util.userConfig
+import cockpit.interfaces.stageMover
 from cockpit.devices.microscopeDevice import MicroscopeBase
 from cockpit.devices.camera import CameraDevice
 from cockpit.handlers.objective import ObjectiveHandler
@@ -323,15 +324,20 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
     def receiveData(self, *args):
         """This function is called when data is received from the hardware."""
         (image, timestamp) = args
+        metadata={'timestamp': timestamp,
+                  'wavelength': self.handler.wavelength,
+                  'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
+                  'imagePos': cockpit.interfaces.stageMover.getPosition(),
+                  }
         if not isinstance(image, Exception):
-            events.publish(events.NEW_IMAGE % self.name, image, timestamp)
+            events.publish(events.NEW_IMAGE % self.name, image, metadata)
         else:
             # Handle the dropped frame by publishing an empty image of the correct
             # size. Use the handler to fetch the size, as this will use a cached value,
             # if available.
             events.publish(events.NEW_IMAGE % self.name,
                            np.zeros(self.handler.getImageSize(), dtype=np.int16),
-                           timestamp)
+                           metadata)
             raise image
 
 
