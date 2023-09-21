@@ -209,11 +209,15 @@ class ViewPanel(wx.Panel):
 
 
     ## Receive a new image and send it to our canvas.
-    def onImage(self, data, *args):
+    def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
-        self.pixelsize =  wx.GetApp().Objectives.GetPixelSize()
-        self.emwavelength = self.curCamera.wavelength
-        self.imagePos = cockpit.interfaces.stageMover.getPosition()
+        self.emwavelength = metadata['wavelength']        
+        self.pixelsize =  metadata['pixelsize']
+        self.imagePos = metadata['imagePos']
+        #excitation wavelength?
+        #exposure time?
+        #objective, NA, immersion, etc....
+        #
 
 
     ## Return True if we currently display a camera.

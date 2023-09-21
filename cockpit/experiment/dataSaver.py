@@ -200,6 +200,7 @@ class DataSaver:
 
         pixelSizeXY = wx.GetApp().Objectives.GetPixelSize()
         lensID = wx.GetApp().Objectives.GetCurrent().lens_ID
+        
         #wavelength should always be on camera even if "0"
         wavelengths = [c.wavelength for c in self.cameras]
 
@@ -308,8 +309,17 @@ class DataSaver:
     # thread.
     def startCollecting(self):
         for camera in self.cameras:
-            def func(data, timestamp, camera=camera):
-                return self.onImage(self.cameraToIndex[camera], data, timestamp)
+            def func(data, metadata, camera=camera):
+                #grab metadata
+                #ex wavelength
+                #em wavelegnth
+                #exposuretime
+                #xyzpos
+                #
+                timestamp=metadata['timestamp']
+                wavelength=metadata['wavelength']
+                print (wavelength)
+                return self.onImage(self.cameraToIndex[camera], data, metadata)
             self.lambdas.append(func)
             events.subscribe(events.NEW_IMAGE % camera.name, func)
 
@@ -383,8 +393,8 @@ class DataSaver:
 
 
     ## Receive new data, and add it to the queue.
-    def onImage(self, cameraIndex, imageData, timestamp):
-        self.imageQueue.put((cameraIndex, imageData, timestamp))
+    def onImage(self, cameraIndex, imageData, metadata):
+        self.imageQueue.put((cameraIndex, imageData, metadata))
 
 
     ## Continually poll our imageQueue and save data to the file.
@@ -394,7 +404,8 @@ class DataSaver:
             if self.shouldAbort:
                 # Do nothing.
                 return
-            cameraIndex, imageData, timestamp = self.imageQueue.get()
+            cameraIndex, imageData, metadata = self.imageQueue.get()
+            timestamp=metadata['timestamp']
             if self.firstTimestamp is None:
                 self.firstTimestamp = timestamp
             # Store the timestamp as a rebased 32-bit float; we can't use

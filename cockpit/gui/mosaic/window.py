@@ -1382,8 +1382,9 @@ class MosaicWindow(wx.Frame, MosaicCommon):
             bestIntensity = None
             for offset in numpy.arange(-1, 1.1, .1):
                 cockpit.interfaces.stageMover.goTo((x, y, z + offset), shouldBlock = True)
-                image, timestamp = events.executeAndWaitFor(events.NEW_IMAGE % camera.name,
+                image, metadata = events.executeAndWaitFor(events.NEW_IMAGE % camera.name,
                         wx.GetApp().Imager.takeImage, shouldBlock = True)
+                timestamp=metadata['timestamp']
                 if bestIntensity is None or image.max() > bestIntensity:
                     bestIntensity = image.max()
                     bestOffset = offset
