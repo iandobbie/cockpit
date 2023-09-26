@@ -689,7 +689,6 @@ def writeMrcHeader(header, filehandle):
 # the left (e.g. a 512x512 array becomes a 1x1x1x512x512 array).
 def writeDataAsMrc(data, filename, XYSize = None, ZSize = None, wavelengths = [],
                    zxy0=None):
-    print(zxy0)
     shape = (5 - len(data.shape)) * [1] + list(data.shape)
     data_out = data.reshape(shape)
     header = makeHeaderFor(data_out, XYSize = XYSize, ZSize = ZSize,
