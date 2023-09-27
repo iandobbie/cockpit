@@ -328,6 +328,8 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                   'wavelength': self.handler.wavelength,
                   'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
                   'imagePos': cockpit.interfaces.stageMover.getPosition(),
+                  'exposure time': self.getExposureTime(),
+                 # 'exwavelength': max active light below Camera wavelength.
                   }
         if not isinstance(image, Exception):
             events.publish(events.NEW_IMAGE % self.name, image, metadata)

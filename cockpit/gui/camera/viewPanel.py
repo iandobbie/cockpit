@@ -214,6 +214,7 @@ class ViewPanel(wx.Panel):
         self.emwavelength = metadata['wavelength']        
         self.pixelsize =  metadata['pixelsize']
         self.imagePos = metadata['imagePos']
+        self.exposureTime = metadata['exposure time']
         #excitation wavelength?
         #exposure time?
         #objective, NA, immersion, etc....
