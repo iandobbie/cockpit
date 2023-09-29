@@ -330,7 +330,14 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                   'imagePos': cockpit.interfaces.stageMover.getPosition(),
                   'exposure time': self.getExposureTime(),
                  # 'exwavelength': max active light below Camera wavelength.
+#                  'lensID': wx.GetApp().Objectives.GetCurrent().lens_ID
                   }
+        lights=[]
+        for light in depot.getHandlerOfType('light source'):
+            if light.getIsEnabled():
+                lights.append(light.wavelength)
+        print(lights)
+        
         if not isinstance(image, Exception):
             events.publish(events.NEW_IMAGE % self.name, image, metadata)
         else:

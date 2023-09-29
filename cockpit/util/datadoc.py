@@ -706,7 +706,7 @@ def writeDataAsMrc(data, filename, XYSize = None, ZSize = None, wavelengths = []
 # the left (e.g. a 512x512 array becomes a 1x1x1x512x512 array).
 def writeDataAsMrcWithExthdr(data, filename, XYSize = None,
                              ZSize = None, wavelengths = [],
-                             zxy0=None, intMetadataBuffers = [],
+                             zxy0=None, lensID=None, intMetadataBuffers = [],
                              floatMetadataBuffers = []):
     shape = (5 - len(data.shape)) * [1] + list(data.shape)
     data_out = data.reshape(shape)
@@ -717,6 +717,7 @@ def writeDataAsMrcWithExthdr(data, filename, XYSize = None,
     numFloats = len(floatMetadataBuffers)
     header.NumIntegers = numIntegers
     header.NumFloats = numFloats
+    header.lensID = lensID
     extendedBytes = 4 * (numIntegers + numFloats)
     header.next = extendedBytes
 

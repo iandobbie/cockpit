@@ -993,6 +993,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             xyzpos=self.Parent.Parent.imagePos
             exposureTime = self.Parent.Parent.exposureTime
             emwavelength = self.Parent.Parent.emwavelength
+            lensID = self.Parent.Parent.lensID
 
             #setup a single plane of extended header metadata
             ## Size of one plane's worth of metadata in the extended header.
@@ -1031,6 +1032,6 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
 
         cockpit.util.datadoc.writeDataAsMrcWithExthdr(self.imageData, path,
                                     XYSize=xysize, wavelengths=wls,
-                                    zxy0=xyzpos,
+                                    zxy0=xyzpos,lensID=lensID,
                                     intMetadataBuffers = intMetadataBuffers,
                                     floatMetadataBuffers = floatMetadataBuffers)
