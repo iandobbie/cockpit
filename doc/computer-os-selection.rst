@@ -14,13 +14,13 @@ Selection of computer Hardware
 
 Cockpit is a portable python application that runs on Windows, Linux
 and macOS. This allows a very wide range of computers to be used to
-run the main GUI application. That said there are a few considerations
+run the main GUI application. That said, there are a few considerations
 to make before selecting the main computer to run the GUI front end
 for a microscope.
 
 The strongest determinant of hardware and OS selection is often the
 availability of interfaces for the required devices to connect to the
-microscope. Many camera have dedicated data transfer cards that
+microscope. Many cameras have dedicated data transfer cards that
 require both a PCIe slot in the computer and a software driver to
 interface to the host OS. In many cases this forces the selection of
 windows as this is the most widely support OS.
@@ -28,7 +28,7 @@ windows as this is the most widely support OS.
 It should be noted that the main controlling computer does not need to
 be directly connected to the hardware, devices can easily be on a
 remote computer communicating over the network. The main computer and
-remote one do not need to run the same OS, eg the controlling computer
+remote ones do not need to run the same OS, eg the controlling computer
 can be macOS while the computer hosting the hardware can run
 windows. However, many people want some, or all of the devices
 connected to the main computer.
