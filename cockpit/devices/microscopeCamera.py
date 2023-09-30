@@ -329,14 +329,24 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                   'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
                   'imagePos': cockpit.interfaces.stageMover.getPosition(),
                   'exposure time': self.getExposureTime(),
-                 # 'exwavelength': max active light below Camera wavelength.
-#                  'lensID': wx.GetApp().Objectives.GetCurrent().lens_ID
+                  'lensID': wx.GetApp().Objectives.GetCurrent().lens_ID,
+                  #                 # 'exwavelength': max active light below Camera wavelength.
                   }
+
+#basic huristic to find excitation wavelength. 
         lights=[]
-        for light in depot.getHandlerOfType('light source'):
+        for light in depot.getHandlersOfType('light source'):
             if light.getIsEnabled():
                 lights.append(light.wavelength)
-        print(lights)
+        lights.sort()
+        lights.reverse()
+        print (lights)
+        metadata['exwavelength'] = None
+        for exwavelength in lights:
+            if metadata['wavelength'] and metadata['wavelength']> exwavelength:
+                metadata['exwavelength'] = exwavelength
+                break
+        print ("ex=",metadata)
         
         if not isinstance(image, Exception):
             events.publish(events.NEW_IMAGE % self.name, image, metadata)
