@@ -315,8 +315,8 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         newTiles = []
         self.SetCurrent(self.context)
         while not self.pendingImages.empty() and (time.time()-t < 0.05):
-            data, pos, size, scalings, layer = self.pendingImages.get()
-            newTiles.append(Tile(data, pos, size, scalings, layer))
+            data, pos, size, scalings, layer,metadata = self.pendingImages.get()
+            newTiles.append(Tile(data, pos, size, scalings, layer, metadata))
         self.tiles.extend(newTiles)
         for megaTile in self.megaTiles:
             megaTile.prerenderTiles(newTiles)
@@ -331,8 +331,9 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
 
     ## Add a new image to the mosaic.
     #@cockpit.util.threads.callInMainThread
-    def addImage(self, data, pos, size, scalings=(None, None), layer=0):
-        self.pendingImages.put((data, pos, size, scalings, layer))
+    def addImage(self, data, pos, size, scalings=(None, None), metadata=None,
+                 layer=0):
+        self.pendingImages.put((data, pos, size, scalings, layer,metadata))
 
 
     ## Rescale the tiles.
@@ -519,7 +520,24 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         for i, tile in enumerate(self.tiles):
             imageData[0, 0, i, :tile.textureData.shape[0], :tile.textureData.shape[1]] = tile.textureData
         header = cockpit.util.datadoc.makeHeaderFor(imageData)
+        #meta data for mosaic image header
+        #
+        numIntegers = 8
+        numFloats = 32
 
+
+        header.NumIntegers = numIntegers
+        header.NumFloats = numFloats
+        #we can only have one lens ID so just grab the current one.
+        header.lensNum = wx.GetApp().Objectives.GetCurrent().lens_ID
+        extendedBytes = 4 * (numIntegers + numFloats)
+        header.next = extendedBytes
+
+        metadataOffset = 1024 
+        dataOffset = (1024 + extendedBytes)
+
+
+        
         handle = open(mrcPath, 'wb')
         cockpit.util.datadoc.writeMrcHeader(header, handle)
         for i, image in enumerate(imageData[:,:]):

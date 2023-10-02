@@ -784,7 +784,7 @@ class MosaicWindow(wx.Frame, MosaicCommon):
             curZ = pos[2] - self.offset[2]
             # Take an image. Use timeout to prevent getting stuck here.
             try:
-                data, timestamp = events.executeAndWaitForOrTimeout(
+                data, metadata = events.executeAndWaitForOrTimeout(
                     events.NEW_IMAGE % camera.name,
                     wx.GetApp().Imager.takeImage,
                     camera.getExposureTime()/1000 + CAMERA_TIMEOUT,
@@ -821,7 +821,8 @@ class MosaicWindow(wx.Frame, MosaicCommon):
                                  ( -pos[0] + self.offset[0] - width / 2,
                                     pos[1] - self.offset[1] - height / 2,
                                     curZ,),
-                                 (width, height), scalings=(minVal, maxVal))
+                                 (width, height), scalings=(minVal, maxVal),
+                                 metadata=metadata)
             # Move to the next position in shifted coords.
             dx, dy = next(stepper)
             target = (centerX + self.offset[0] + dx * width,
