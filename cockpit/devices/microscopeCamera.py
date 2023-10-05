@@ -340,13 +340,11 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                 lights.append(light.wavelength)
         lights.sort()
         lights.reverse()
-        print (lights)
         metadata['exwavelength'] = None
         for exwavelength in lights:
             if metadata['wavelength'] and metadata['wavelength']> exwavelength:
                 metadata['exwavelength'] = exwavelength
                 break
-        print ("ex=",metadata)
         
         if not isinstance(image, Exception):
             events.publish(events.NEW_IMAGE % self.name, image, metadata)

@@ -492,7 +492,7 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         handle = open(savePath, 'w')
         mrcPath = savePath + '.mrc'
         if '.txt' in savePath:
-            mrcPath = savePath.replace('.txt', '.mrc')
+            mrcPath = savePath.replace('.txt', '.dv')
         handle.write("%s\n" % mrcPath)
         width = 0
         height = 0
@@ -524,22 +524,43 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         #
         numIntegers = 8
         numFloats = 32
+        intMetadataBuffer =numpy.array([0] * numIntegers,
+                                       dtype=numpy.int32)
+        floatMetadataBuffer = numpy.array([0.0] * numFloats,
+                                          dtype=numpy.float32)
+        floatMetadataBuffer[12] = 1.0 # intensity scaling
+
 
 
         header.NumIntegers = numIntegers
         header.NumFloats = numFloats
         #we can only have one lens ID so just grab the current one.
-        header.lensNum = wx.GetApp().Objectives.GetCurrent().lens_ID
-        extendedBytes = 4 * (numIntegers + numFloats)
+        header.LensNum = wx.GetApp().Objectives.GetCurrent().lens_ID
+        extendedBytes = 4 * (numIntegers + numFloats)*len(self.tiles)
         header.next = extendedBytes
 
         metadataOffset = 1024 
         dataOffset = (1024 + extendedBytes)
 
-
+        
         
         handle = open(mrcPath, 'wb')
         cockpit.util.datadoc.writeMrcHeader(header, handle)
+        handle.seek(metadataOffset)
+        for i in range(len (self.tiles)):
+            metadata=self.tiles[i].metadata
+            floatMetadataBuffer[1] = metadata['timestamp']
+            floatMetadataBuffer[2:5] = metadata['imagePos']
+            floatMetadataBuffer[5] = self.tiles[i].textureData.min()
+            floatMetadataBuffer[6] = self.tiles[i].textureData.min()
+            floatMetadataBuffer[8] = metadata['exposure time']
+            floatMetadataBuffer[10] = metadata['exwavelength']
+            floatMetadataBuffer[11] = metadata['wavelength']
+            handle.write(intMetadataBuffer)
+            handle.write(floatMetadataBuffer)
+            
+        #we should be here already but just to be sure
+        handle.seek(dataOffset)
         for i, image in enumerate(imageData[:,:]):
             handle.write(image)
             wx.PostEvent(self.GetEventHandler(), ProgressUpdateEvent(value=i))
