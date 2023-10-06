@@ -550,7 +550,7 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         for i in range(len (self.tiles)):
             metadata=self.tiles[i].metadata
             floatMetadataBuffer[1] = metadata['timestamp']
-            floatMetadataBuffer[2:4] = metadata['imagePos']
+            floatMetadataBuffer[2:5] = metadata['imagePos']
             floatMetadataBuffer[5] = self.tiles[i].textureData.min()
             floatMetadataBuffer[6] = self.tiles[i].textureData.min()
             floatMetadataBuffer[8] = metadata['exposure time']

@@ -1004,7 +1004,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             intMetadataBuffers = np.zeros(numIntegers, dtype = np.int32)
             floatMetadataBuffers = np.zeros(numFloats, dtype = np.float32)
             floatMetadataBuffers[12] = 1.0 # intensity scaling
-            floatMetadataBuffers[2:4] = xyzpos[0:3]
+            floatMetadataBuffers[2:5] = xyzpos[0:3]
             floatMetadataBuffers[5] = np.min(self.imageData)
             floatMetadataBuffers[6] = np.max(self.imageData)
             floatMetadataBuffers[7] = np.mean(self.imageData)

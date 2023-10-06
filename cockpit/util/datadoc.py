@@ -717,7 +717,7 @@ def writeDataAsMrcWithExthdr(data, filename, XYSize = None,
     numFloats = len(floatMetadataBuffers)
     header.NumIntegers = numIntegers
     header.NumFloats = numFloats
-    header.lensID = lensID
+    header.LensNum = lensID
     extendedBytes = 4 * (numIntegers + numFloats)
     header.next = extendedBytes
     
