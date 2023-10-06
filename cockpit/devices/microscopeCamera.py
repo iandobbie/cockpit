@@ -330,8 +330,9 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
         if not experiment.isRunning():
             wavelength=None
             if self.handler.wavelength is not None:
-                wavelength=self.handler.wavelength
-            #not running expereiemtn so poulate all data
+                wavelength=float(self.handler.wavelength)
+            print(wavelength)
+                #not running experiment so poulate all data
             metadata={'timestamp': timestamp,
                       'wavelength': wavelength,
                   'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
@@ -351,8 +352,8 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                     lights.reverse()
             metadata['exwavelength'] = None
             for exwavelength in lights:
-                if (metadata['wavelength'] and
-                            metadata['wavelength'] > exwavelength):
+                if (wavelength and
+                    wavelength > exwavelength):
                     metadata['exwavelength'] = exwavelength
                     break
             print(metadata)
