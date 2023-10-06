@@ -993,6 +993,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             xyzpos=self.Parent.Parent.imagePos
             exposureTime = self.Parent.Parent.exposureTime
             emwavelength = self.Parent.Parent.emwavelength
+            exwavelength = self.Parent.Parent.exwavelength
             lensID = self.Parent.Parent.lensID
 
             #setup a single plane of extended header metadata
@@ -1003,14 +1004,14 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             intMetadataBuffers = np.zeros(numIntegers, dtype = np.int32)
             floatMetadataBuffers = np.zeros(numFloats, dtype = np.float32)
             floatMetadataBuffers[12] = 1.0 # intensity scaling
-            floatMetadataBuffers[2:4] = xyzpos[0:2]
+            floatMetadataBuffers[2:4] = xyzpos[0:3]
             floatMetadataBuffers[5] = np.min(self.imageData)
             floatMetadataBuffers[6] = np.max(self.imageData)
             floatMetadataBuffers[7] = np.mean(self.imageData)
             floatMetadataBuffers[8] = exposureTime
+            floatMetadataBuffers[10] = exwavelength
             floatMetadataBuffers[11] = emwavelength
 
-            print (floatMetadataBuffers)
 
             #spec for extended header
             # 8 32bit signed integers, often are all set to zero.

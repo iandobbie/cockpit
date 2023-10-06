@@ -720,31 +720,23 @@ def writeDataAsMrcWithExthdr(data, filename, XYSize = None,
     header.lensID = lensID
     extendedBytes = 4 * (numIntegers + numFloats)
     header.next = extendedBytes
-
     
     handle = open(filename, 'wb')
     writeMrcHeader(header, handle)
 
     metadataOffset = 1024 
     dataOffset = (1024 + extendedBytes)
-
-    
     try:
         handle.seek(metadataOffset)
         handle.write(intMetadataBuffers)
         handle.write(floatMetadataBuffers)
         handle.seek(dataOffset) # Seek to end of header
         data_out.tofile(handle)
-
-
     except Exception as e:
         print ("Error writing image:",e)
         raise e
-
-    
     handle.close()
 
-    
 
 ## Given a buffer of memory that contains the extended header, and the
 # standard header, return the

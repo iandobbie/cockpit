@@ -214,14 +214,12 @@ class ViewPanel(wx.Panel):
         self.canvas.setImage(data)
         if not experiment.isRunning():
             self.emwavelength = metadata['wavelength']        
+            self.exwavelength = metadata['exwavelength']
             self.pixelsize =  metadata['pixelsize']
             self.imagePos = metadata['imagePos']
             self.exposureTime = metadata['exposure time']
             self.lensID = metadata['lensID']
-            #excitation wavelength?
-            #exposure time?
-            #objective, NA, immersion, etc....
-
+            
     ## Return True if we currently display a camera.
     def getIsEnabled(self):
         return self.curCamera is not None

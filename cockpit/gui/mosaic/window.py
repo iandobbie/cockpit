@@ -858,6 +858,8 @@ class MosaicWindow(wx.Frame, MosaicCommon):
                     camera = cam
                     break
         # Get image size in microns.
+        #This data should be grabbed from the metadata as the system
+        #settings, stage pos etc may have changed
         pixel_size = wx.GetApp().Objectives.GetPixelSize()
         width, height = camera.getImageSize()
         width *= pixel_size

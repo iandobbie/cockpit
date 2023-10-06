@@ -331,9 +331,9 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
 
     ## Add a new image to the mosaic.
     #@cockpit.util.threads.callInMainThread
-    def addImage(self, data, pos, size, scalings=(None, None), metadata=None,
-                 layer=0):
-        self.pendingImages.put((data, pos, size, scalings, layer,metadata))
+    def addImage(self, data, pos, size, scalings=(None, None),
+                 layer=0, metadata=None):
+        self.pendingImages.put((data, pos, size, scalings, layer, metadata))
 
 
     ## Rescale the tiles.
@@ -550,7 +550,7 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         for i in range(len (self.tiles)):
             metadata=self.tiles[i].metadata
             floatMetadataBuffer[1] = metadata['timestamp']
-            floatMetadataBuffer[2:5] = metadata['imagePos']
+            floatMetadataBuffer[2:4] = metadata['imagePos']
             floatMetadataBuffer[5] = self.tiles[i].textureData.min()
             floatMetadataBuffer[6] = self.tiles[i].textureData.min()
             floatMetadataBuffer[8] = metadata['exposure time']

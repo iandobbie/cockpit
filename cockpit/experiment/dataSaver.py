@@ -200,7 +200,6 @@ class DataSaver:
 
         pixelSizeXY = wx.GetApp().Objectives.GetPixelSize()
         lensID = wx.GetApp().Objectives.GetCurrent().lens_ID
-        
         #wavelength should always be on camera even if "0"
         wavelengths = [c.wavelength for c in self.cameras]
 
@@ -310,13 +309,6 @@ class DataSaver:
     def startCollecting(self):
         for camera in self.cameras:
             def func(data, metadata, camera=camera):
-                #grab metadata
-                #ex wavelength
-                #em wavelegnth
-                #exposuretime
-                #xyzpos
-                #
-                timestamp=metadata['timestamp']
                 return self.onImage(self.cameraToIndex[camera], data, metadata)
             self.lambdas.append(func)
             events.subscribe(events.NEW_IMAGE % camera.name, func)
