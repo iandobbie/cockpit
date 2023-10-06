@@ -325,15 +325,21 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
     def receiveData(self, *args):
         """This function is called when data is received from the hardware."""
         (image, timestamp) = args
+        print("got image")
+        print(self.handler.wavelength)
         if not experiment.isRunning():
+            wavelength=None
+            if self.handler.wavelength is not None:
+                wavelength=self.handler.wavelength
             #not running expereiemtn so poulate all data
             metadata={'timestamp': timestamp,
-                  'wavelength': float(self.handler.wavelength),
+                      'wavelength': wavelength,
                   'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
                   'imagePos': cockpit.interfaces.stageMover.getPosition(),
                   'exposure time': self.getExposureTime(),
                   'lensID': wx.GetApp().Objectives.GetCurrent().lens_ID,
                   }
+            print("basic metadata")
             #basic huristic to find excitation wavelength.
             #Finds active lights, sorts in reverse order and then finds the
             #first that is lower than the emission wavelength. 
@@ -349,6 +355,7 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
                             metadata['wavelength'] > exwavelength):
                     metadata['exwavelength'] = exwavelength
                     break
+            print(metadata)
         else:
             #experiment running so populate minmum of metadata
             #need to add more but this should equate to the behaviour
