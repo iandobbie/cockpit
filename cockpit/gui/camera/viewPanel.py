@@ -52,6 +52,7 @@
 import wx
 from cockpit import depot
 from cockpit import events
+from cockpit.experiment import experiment
 import cockpit.util.threads
 import cockpit.gui.guiUtils
 import cockpit.gui.imageViewer.viewCanvas
@@ -211,16 +212,15 @@ class ViewPanel(wx.Panel):
     ## Receive a new image and send it to our canvas.
     def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
-        self.emwavelength = metadata['wavelength']        
-        self.pixelsize =  metadata['pixelsize']
-        self.imagePos = metadata['imagePos']
-        self.exposureTime = metadata['exposure time']
-        self.lensID = metadata['lensID']
-        #excitation wavelength?
-        #exposure time?
-        #objective, NA, immersion, etc....
-        #
-
+        if not experiment.isRunning():
+            self.emwavelength = metadata['wavelength']        
+            self.pixelsize =  metadata['pixelsize']
+            self.imagePos = metadata['imagePos']
+            self.exposureTime = metadata['exposure time']
+            self.lensID = metadata['lensID']
+            #excitation wavelength?
+            #exposure time?
+            #objective, NA, immersion, etc....
 
     ## Return True if we currently display a camera.
     def getIsEnabled(self):

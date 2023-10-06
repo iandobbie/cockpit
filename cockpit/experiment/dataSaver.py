@@ -317,8 +317,6 @@ class DataSaver:
                 #xyzpos
                 #
                 timestamp=metadata['timestamp']
-                wavelength=metadata['wavelength']
-                print (wavelength)
                 return self.onImage(self.cameraToIndex[camera], data, metadata)
             self.lambdas.append(func)
             events.subscribe(events.NEW_IMAGE % camera.name, func)

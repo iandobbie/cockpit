@@ -326,35 +326,35 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
         """This function is called when data is received from the hardware."""
         (image, timestamp) = args
         if not experiment.isRunning():
-            #not runnign expereiemtn so poulate all data
+            #not running expereiemtn so poulate all data
             metadata={'timestamp': timestamp,
-                  'wavelength': self.handler.wavelength,
+                  'wavelength': float(self.handler.wavelength),
                   'pixelsize': wx.GetApp().Objectives.GetPixelSize(),
                   'imagePos': cockpit.interfaces.stageMover.getPosition(),
                   'exposure time': self.getExposureTime(),
                   'lensID': wx.GetApp().Objectives.GetCurrent().lens_ID,
                   }
-
             #basic huristic to find excitation wavelength.
             #Finds active lights, sorts in reverse order and then finds the
             #first that is lower than the emission wavelength. 
             lights=[]
             for light in depot.getHandlersOfType('light source'):
                 if light.getIsEnabled():
-                    lights.append(light.wavelength)
+                    lights.append(float(light.wavelength))
                     lights.sort()
                     lights.reverse()
-                    metadata['exwavelength'] = None
-                    for exwavelength in lights:
-                        if metadata['wavelength'] and metadata['wavelength']> exwavelength:
-                            metadata['exwavelength'] = exwavelength
-                            break
+            metadata['exwavelength'] = None
+            for exwavelength in lights:
+                if (metadata['wavelength'] and
+                            metadata['wavelength'] > exwavelength):
+                    metadata['exwavelength'] = exwavelength
+                    break
         else:
             #experiment running so populate minmum of metadata
             #need to add more but this should equate to the behaviour
             #we had before
             metadata={'timestamp': timestamp,}
-        
+
         if not isinstance(image, Exception):
             events.publish(events.NEW_IMAGE % self.name, image, metadata)
         else:
