@@ -111,7 +111,7 @@ class ExecutorDevice(device.Device):
     @cockpit.util.threads.locked
     def initialize(self):
         self.connection = Pyro4.Proxy(self.uri)
-        self.connection._pyroTimeout = 6
+        self.connection._pyroTimeout = 60
         self.connection.Abort()
 
     def onExit(self) -> None:
