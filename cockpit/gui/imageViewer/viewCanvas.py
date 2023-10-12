@@ -69,6 +69,13 @@ import wx
 import wx.glcanvas
 import operator
 
+#zarr file imports. 
+import zarr
+import os
+from skimage.data import binary_blobs
+from ome_zarr.io import parse_url
+from ome_zarr.writer import write_image
+
 
 ## @package cockpit.gui.imageViewer.viewCanvas
 # This module provides a canvas for displaying camera images.
@@ -830,7 +837,8 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                 ('', None),
                 ('Send image to mosaic',
                          cockpit.gui.mosaic.window.transferCameraImage),
-                ('Save image', self.saveData)
+                ('Save image', self.saveData),
+                ('Save Zarr image', self.saveZarrData)
                 ]
 
 
@@ -1036,3 +1044,32 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                                     zxy0=xyzpos,lensID=lensID,
                                     intMetadataBuffers = intMetadataBuffers,
                                     floatMetadataBuffers = floatMetadataBuffers)
+
+
+    def saveZarrData(self, evt=None):
+        with wx.FileDialog(self, "Save image", wildcard="Zarr files (*.zarr)|*.zarr",
+                           style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() != wx.ID_OK:
+                return
+            path = fileDialog.GetPath()
+
+        #dont think we need this
+        #os.mkdir(path)
+
+
+        # write the image data
+        store = parse_url(path, mode="w").store
+        root = zarr.group(store=store)
+        write_image(image=self.imageData, group=root, axes="yx",
+                    storage_options=dict(chunks=( self.imageShape[1],
+                                                 self.imageShape[0])))
+        # optional rendering settings
+        root.attrs["omero"] = {
+            "channels": [{
+                "color": "00FFFF",
+                "window": {"start": 0, "end": 20, "min": 0, "max": 255},
+                "label": "Snap",
+                "active": True,
+            }]
+        }
+
