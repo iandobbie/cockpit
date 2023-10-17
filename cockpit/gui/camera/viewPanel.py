@@ -213,12 +213,8 @@ class ViewPanel(wx.Panel):
     def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
         if not experiment.isRunning():
-            self.emwavelength = metadata['wavelength']        
-            self.exwavelength = metadata['exwavelength']
-            self.pixelsize =  metadata['pixelsize']
-            self.imagePos = metadata['imagePos']
-            self.exposureTime = metadata['exposure time']
-            self.lensID = metadata['lensID']
+            self.metadata = metadata
+            self.imagePos = self.metadata['imagePos']
             
     ## Return True if we currently display a camera.
     def getIsEnabled(self):
@@ -237,7 +233,7 @@ class ViewPanel(wx.Panel):
 
     ## Get the current pixel data for the view.
     def getPixelData(self):
-        return self.canvas.imageData
+        return (self.canvas.imageData,self.metadata)
 
     ## Debugging: convert to string.
     def __repr__(self):

@@ -988,13 +988,14 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         # kwargs, but the way per-camera pixel sizes are handled needs to be
         # addressed first. See issue #538.
         if self.Parent.Parent.curCamera is not None:
-            wls = [self.Parent.Parent.curCamera.wavelength,]
-            xysize=self.Parent.Parent.pixelsize
-            xyzpos=self.Parent.Parent.imagePos
-            exposureTime = self.Parent.Parent.exposureTime
-            emwavelength = self.Parent.Parent.emwavelength
-            exwavelength = self.Parent.Parent.exwavelength
-            lensID = self.Parent.Parent.lensID
+            metadata = self.Parent.Parent.metadata
+            wls = [metadata['wavelength'],]
+            xysize=metadata['pixelsize'],]
+            xyzpos=metadata['imagePos']
+            exposureTime = metadata['exposureTime']
+            emwavelength = metadata['wavelength']
+            exwavelength = metadata['exwavelength']
+            lensID = metadata['lensID']
 
             #setup a single plane of extended header metadata
             ## Size of one plane's worth of metadata in the extended header.

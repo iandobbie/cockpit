@@ -860,17 +860,20 @@ class MosaicWindow(wx.Frame, MosaicCommon):
         # Get image size in microns.
         #This data should be grabbed from the metadata as the system
         #settings, stage pos etc may have changed
-        pixel_size = wx.GetApp().Objectives.GetPixelSize()
+        data,metadata = cockpit.gui.camera.window.getImageForCamera(camera)
+        pixel_size = metadata['pixelsize']
         width, height = camera.getImageSize()
         width *= pixel_size
         height *= pixel_size
-        x, y, z = cockpit.interfaces.stageMover.getPosition()
-        data = cockpit.gui.camera.window.getImageForCamera(camera)
+        x, y, z = metadata['imagePos']
+ 
+        print (metadata, len(data.shape))
         self.canvas.addImage(data, (-x +self.offset[0]- width / 2,
                                     y-self.offset[1] - height / 2,
                                     z-self.offset[2]),
                 (width, height),
-                scalings = cockpit.gui.camera.window.getCameraScaling(camera))
+                scalings = cockpit.gui.camera.window.getCameraScaling(camera),
+                metadata=metadata)
         # Refresh this and other mosaic views.
         events.publish(events.MOSAIC_UPDATE)
 
