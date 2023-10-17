@@ -116,16 +116,22 @@ class CameraHandler(deviceHandler.DeviceHandler):
         self.dye = None
         # Set up trigger handling.
         if trigHandler and trigLine:
-            h = trigHandler.registerDigital(self, trigLine)
-            self.triggerNow = h.triggerNow
+            self.hardwareTrigHandler = trigHandler.registerDigital(self,
+                                                                   trigLine)
+            self.setHardwareTrig()
         else:
-            softTrigger = self.callbacks.get('softTrigger', None)
-            self.triggerNow = lambda: softTrigger
-            if softTrigger:
-                depot.addHandler(cockpit.handlers.imager.ImagerHandler(
-                    "%s imager" % name, "imager",
-                    {'takeImage': softTrigger}))
+            self.setSoftwareTrig()
 
+    def setHardwareTrig(self):
+        self.triggerNow= self.hardwareTrigHandler.triggerNow
+
+    def setSoftwareTrig(self):
+        softTrigger = self.callbacks.get('softTrigger', None)
+        self.triggerNow = lambda: softTrigger
+        if softTrigger:
+            depot.addHandler(cockpit.handlers.imager.ImagerHandler(
+                "%s imager" % self.name, "imager",
+                {'takeImage': softTrigger}))
 
     def onSaveSettings(self):
         return self.getIsEnabled()
