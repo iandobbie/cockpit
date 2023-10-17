@@ -334,7 +334,7 @@ class DataSaver:
 
         # Wait until it's been a bit without getting any more images in, or
         # until we have all the images we expected to get for each camera.
-        while (time.time() - self.lastImageTime < .5
+        while (time.time() - self.lastImageTime < 1.0
                or not self.imageQueue.empty()):
             amDone = True
             for camera in self.cameras:
