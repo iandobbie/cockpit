@@ -990,9 +990,9 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         if self.Parent.Parent.curCamera is not None:
             metadata = self.Parent.Parent.metadata
             wls = [metadata['wavelength'],]
-            xysize=metadata['pixelsize'],]
+            xysize=metadata['pixelsize']
             xyzpos=metadata['imagePos']
-            exposureTime = metadata['exposureTime']
+            exposureTime = metadata['exposure time']
             emwavelength = metadata['wavelength']
             exwavelength = metadata['exwavelength']
             lensID = metadata['lensID']

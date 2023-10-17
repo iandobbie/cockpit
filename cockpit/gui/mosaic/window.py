@@ -867,7 +867,6 @@ class MosaicWindow(wx.Frame, MosaicCommon):
         height *= pixel_size
         x, y, z = metadata['imagePos']
  
-        print (metadata, len(data.shape))
         self.canvas.addImage(data, (-x +self.offset[0]- width / 2,
                                     y-self.offset[1] - height / 2,
                                     z-self.offset[2]),
