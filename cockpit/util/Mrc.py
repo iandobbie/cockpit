@@ -174,23 +174,29 @@ class Mrc:
         ## Maybe adjust data shape? (file may be truncated)
         adjusted_shape = adjusted_data_shape(self.data.size, header_shape)
         if header_shape != adjusted_shape:
-            print(("** WARNING **: file truncated - shape from header: %s."
-                   " Expected to get %i pixels but got %i pixels")
-                  % (header_shape, N.prod(header_shape), self.data.size))
+            title = "Warning: Saved file truncated"
+            msg = (
+                "The saved image file is truncated. Shaoe from header: %s"
+                " Expected to get %i pixels but got %i pixels. \n"
+                "Press OK to contine and Cancel to delete file"
+                  % (header_shape, N.prod(header_shape), self.data.size)
+            )
+            if cockpit.gui.guiUtils.getUserPermission(msg, title):
+                ## In some cases, this may require the introduction of
+                ## blank/padding data (see cockpit bug #289).  In such
+                ## cases, we need to expand the data first which will lead
+                ## to a N.array being returned instead of N.memmap.
+                if self.data.size != N.prod(adjusted_shape):
+                    blanks = N.full(N.prod(adjusted_shape) - self.data.size,
+                                    N.nan, dtype=self.data.dtype)
+                    self.data = N.concatenate((self.data, blanks))
 
-            ## In some cases, this may require the introduction of
-            ## blank/padding data (see cockpit bug #289).  In such
-            ## cases, we need to expand the data first which will lead
-            ## to a N.array being returned instead of N.memmap.
-            if self.data.size != N.prod(adjusted_shape):
-                blanks = N.full(N.prod(adjusted_shape) - self.data.size,
-                                N.nan, dtype=self.data.dtype)
-                self.data = N.concatenate((self.data, blanks))
-
-        self.data.shape = adjusted_shape
-
-        if self.isByteSwapped:
-            self.data = self.data.newbyteorder()
+                    self.data.shape = adjusted_shape
+                if self.isByteSwapped:
+                    self.data = self.data.newbyteorder()
+            else:
+                #delete file as user canceled, need to implement. 
+                pass
 
 
     def setTitle(self, s, i=-1):
