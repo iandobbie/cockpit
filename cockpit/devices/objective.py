@@ -71,7 +71,7 @@ class ObjectiveDevice(cockpit.devices.device.Device):
       Z section size. Defaults to 0.
 
     ''immersionRI'' (optional)
-      The freactive index of the immersion media for Z resolution calculations.
+      The refractive index of the immersion media for Z resolution calculations.
       Defaults to 1.0 (air).
 
     For example::

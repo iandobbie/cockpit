@@ -68,12 +68,18 @@ class ObjectiveHandler(cockpit.handlers.deviceHandler.DeviceHandler):
         self.immersionRI = immersionRI
 
     def XYresolution(self, wavelength):
+        if wavelength == 0:
+            ##assume green light
+            wavelength = 500
         if (self.NA != 0):
             return ((1.22*wavelength) / (2.0 * self.NA))
         else:
             return 0
 
     def Zresolution(self, wavelength):
+        if wavelength == 0:
+            ##assume green light
+            wavelength = 500
         if (self.NA != 0):
             return ((wavelength*self.immersionRI) / (self.NA**2))
         else:
