@@ -416,20 +416,33 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         self.scale = scale
         self.Refresh()
 
+    def ZoomAtPoint(self, multiplier: float, wx_point) -> None:
+        """Zoom in/out while keeping point in place.
 
-    ## Change our zoom by the specified multiplier. This requires changing
-    # our translational offset too to keep the view centered.
-    def multiplyZoom(self, multiplier):
-        # Paranoia
-        if multiplier == 0:
-            return
+        When using the mouse scroll to zoom in/out we want to keep the
+        point under the mouse fixed in place.  See ``multiplyZoom`` to
+        zoom while keeping the viewport centre point fixed.
+        """
+        width, height = self.GetClientSize() * self.GetContentScaleFactor()
+        gl_xpoint = wx_point[0]
+        gl_ypoint = (wx_point[1] - height) * -1
+
+        self.dx = gl_xpoint - (gl_xpoint - self.dx) * multiplier
+        self.dy = gl_ypoint - (gl_ypoint - self.dy) * multiplier
         self.scale *= multiplier
-        width, height = self.GetClientSize()*self.GetContentScaleFactor()
-        halfWidth = width / 2
-        halfHeight = height / 2
-        self.dx = halfWidth - (halfWidth - self.dx) * multiplier
-        self.dy = halfHeight - (halfHeight - self.dy) * multiplier
         self.Refresh()
+
+    def multiplyZoom(self, multiplier: float) -> None:
+        """Change zoom by the specified multiplier.
+
+        This will change the translational offset too to keep the view
+        centred.  See ``ZoomAtPoint`` to zoom while keeping another
+        point fixed (typically the mouse location).
+
+        """
+        width, height = self.GetClientSize() * self.GetContentScaleFactor()
+        viewport_centre_point = (width /2, height /2)
+        self.ZoomAtPoint(multiplier, viewport_centre_point)
 
     def onDPIchange(self,event):
         #get new scale and work out change.
