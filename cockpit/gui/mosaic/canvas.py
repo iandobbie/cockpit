@@ -424,8 +424,8 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         zoom while keeping the viewport centre point fixed.
         """
         width, height = self.GetClientSize() * self.GetContentScaleFactor()
-        gl_xpoint = wx_point[0]
-        gl_ypoint = (wx_point[1] - height) * -1
+        gl_xpoint = wx_point[0]*self.GetContentScaleFactor()
+        gl_ypoint = ((wx_point[1]*self.GetContentScaleFactor() - height) * -1)
 
         self.dx = gl_xpoint - (gl_xpoint - self.dx) * multiplier
         self.dy = gl_ypoint - (gl_ypoint - self.dy) * multiplier
