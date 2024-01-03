@@ -440,7 +440,7 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
         point fixed (typically the mouse location).
 
         """
-        width, height = self.GetClientSize() * self.GetContentScaleFactor()
+        width, height = self.GetClientSize()
         viewport_centre_point = (width /2, height /2)
         self.ZoomAtPoint(multiplier, viewport_centre_point)
 
