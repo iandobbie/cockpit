@@ -328,6 +328,217 @@ class Image(BaseGL):
         glUseProgram(0)
 
 
+
+class ColourImage(BaseGL):
+    """ An class for rendering grayscale images from image data.
+
+    GL textures are generated once. GL stores textures as floats with a range of
+    0 to 1. We use the data.min and data.max of the incoming data to fill this
+    range to prevent loss of detail due to quantisation when rendering low dynamic
+    range images.
+    """
+    # Vertex shader glsl source
+    _VS = """
+    #version 120
+    attribute vec2 vXY;
+    uniform float zoom;
+    uniform float angle;
+    uniform vec2 pan;
+
+    void main() {
+        gl_TexCoord[0] = gl_MultiTexCoord0;
+        gl_Position = vec4(zoom * (vXY + pan), 1., 1.);
+    }
+    """
+    # Fragment shader glsl source.
+    _FS = """
+    #version 120
+    uniform sampler2D tex;
+    uniform float scale;
+    uniform float offset;
+    uniform bool show_clip;
+
+    void main()
+    {
+        vec4 lum = clamp(offset + texture2D(tex, gl_TexCoord[0].st) / scale, 0., 1.);
+    gl_FragColor = vec4(lum.r, lum.g, lum.b, 1.);
+    }
+    """
+    def __init__(self):
+        # Maximum texture edge size
+        self._maxTexEdge = 0
+        # Textures used to display this image.
+        self._textures = []
+        # New data flag
+        self._update = False
+        # Geometry as number of textures along each axis.
+        self.shape = (0, 0)
+        ## Should we use colour to indicate range clipping?
+        self.clipHighlight = False
+        # Data
+        self._data = None
+        # Minimum and maximum data value - used for setting greyscale range.
+        self.dptp = 1
+        self.dmin = 0
+        # Grayscale clipping points
+        self.vmax = 1
+        self.vmin = 0
+
+    @property
+    def scale(self):
+        return (self.vmax - self.vmin) / (self.dptp)
+
+    @property
+    def offset(self):
+        return - (self.vmin - self.dmin) / ((self.dptp * self.scale) or 1)
+
+    def __del__(self):
+        """Clean up textures."""
+        try:
+            # On exit, textures may have already been cleaned up.
+            glDeleteTextures(len(self._textures), self._textures)
+        except:
+            pass
+
+    def autoscale(self):
+        """Fit grayscale to range covered by data."""
+        self.vmin = float(self._data.min())
+        self.vmax = float(self._data.max())
+
+    def getDisplayRange(self):
+        return (self.vmin, self.vmax)
+
+    def setDisplayRange(self, vmin, vmax):
+        """Set offset and scaling given clip points."""
+        self.vmin = float(vmin)
+        self.vmax = float(vmax)
+
+    def setData(self, data, col):
+        self._data = data
+        self._update = True
+
+    def toggleClipHighlight(self, event=None):
+        self.clipHighlight = not self.clipHighlight
+
+    def _createTextures(self):
+        """Convert data to textures.
+
+        Needs GL context to be set prior to call, and should only
+        be called in the main thread."""
+        if self._data is None:
+            return
+        self._maxTexEdge = glGetInteger(GL_MAX_TEXTURE_SIZE)
+        data = self._data
+        glPixelStorei(GL_UNPACK_SWAP_BYTES, False)
+        # Ensure the right number of textures available.
+        nx = int(np.ceil(data.shape[1] / self._maxTexEdge))
+        ny = int(np.ceil(data.shape[0] / self._maxTexEdge))
+        self.shape = (nx, ny)
+        ntex = nx * ny
+        if ntex > len(self._textures):
+            textures = glGenTextures(ntex - len(self._textures))
+            if isinstance(textures, Iterable):
+                self._textures.extend(textures)
+            else:
+                self._textures.append(textures)
+        elif ntex < len(self._textures):
+            glDeleteTextures(len(self._textures) - ntex)
+        if ntex == 1:
+            # Data will fit into a single texture.
+            # Do we need to round these up to a power of 2?
+            ty, tx = data.shape
+        else:
+            # Need to use multiple textures to store data.
+            tx = ty = self._maxTexEdge
+        self.dptp = data.ptp()
+        self.dmin = data.min()
+        if self.dptp < 1e-6:
+            self.dptp = 1
+        for i, tex in enumerate(self._textures):
+            xoff = tx * (i % nx)
+            yoff = ty * (i // nx)
+            subdata = (data[yoff:min(data.shape[0], yoff+ty),
+                           xoff:min(data.shape[1], xoff+tx)].astype(np.float32) - self.dmin) / self.dptp
+            glBindTexture(GL_TEXTURE_2D, tex)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, tx, ty, 0,
+                         GL_RED, GL_FLOAT, None)
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, subdata.shape[1], subdata.shape[0],
+                            GL_RED, GL_FLOAT, subdata)
+        self._update = False
+
+    def draw(self, pan=(0,0), zoom=1):
+        """Render the textures. Caller must set context prior to call."""
+        if self._data is None:
+            return
+        elif self._update:
+            self._createTextures()
+        shader = self.getShader()
+        glUseProgram(shader)
+        # Vertical and horizontal modifiers for non-square images.
+        hlim = self._data.shape[1] / max(self._data.shape)
+        vlim = self._data.shape[0] / max(self._data.shape)
+        # Number of x and y textures.
+        nx, ny = self.shape
+        # Quad dimensions for one texture.
+        dx = 2 * hlim / nx
+        dy = 2 * vlim / ny
+        if len(self._textures) > 1:
+            tx = ty = self._maxTexEdge
+            # xy & zoom correction for incompletely-filled textures at upper & right edges.
+            xcorr = ((tx - self._data.shape[1]) % tx) / (nx * tx)
+            ycorr = ((ty - self._data.shape[0]) % ty) / (ny * ty)
+            zoomcorr = self._data.shape[1] / (nx * tx)
+            zoomcorr = max(zoomcorr, self._data.shape[0] / (ny * ty))
+            zoom = zoom / zoomcorr
+            pan = (zoomcorr * pan[0] + xcorr, zoomcorr * pan[1] + ycorr )
+        # Update shader parameters
+        glUniform2f(glGetUniformLocation(shader, "pan"), pan[0], pan[1])
+        glUniform1i(glGetUniformLocation(shader, "tex"), 0)
+        glUniform1f(glGetUniformLocation(shader, "scale"), self.scale)
+        glUniform1f(glGetUniformLocation(shader, "offset"), self.offset)
+        glUniform1f(glGetUniformLocation(shader, "zoom"), zoom)
+        glUniform1i(glGetUniformLocation(shader, "show_clip"), self.clipHighlight)
+        # Render
+        glEnable(GL_TEXTURE_2D)
+        glEnableClientState(GL_VERTEX_ARRAY)
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+        # nested loops are still quicker than itertools.product
+        for j in range(ny):
+            # i and j are indices that determine left and bottom quad co-ords.
+            # ii and jj determine upper quad co-ords, and may be fractional for
+            # quads at the top or right of the image.
+            if j > 0 and j == ny - 1:
+                jj = self._data.shape[0] / self._maxTexEdge
+            else:
+                jj = j+1
+            for i in range(nx):
+                if i > 0 and i == nx - 1:
+                    ii = self._data.shape[1] / self._maxTexEdge
+                else:
+                    ii = i+1
+                # Arrays used to create textures have top left at [0,0].
+                # GL co-ords run *bottom* left to top right, so need to invert
+                # vertical co-ords.
+                glVertexPointerf( [(-hlim + i*dx, -vlim + jj*dy),
+                                   (-hlim + ii*dx, -vlim + jj*dy),
+                                   (-hlim + ii*dx, -vlim + j*dy),
+                                   (-hlim + i*dx, -vlim + j*dy)] )
+                glTexCoordPointer(2, GL_FLOAT, 0,
+                                  [(0, 0), (ii%1 or 1, 0), (ii%1 or 1, jj%1 or 1), (0, jj%1 or 1)])
+                glBindTexture(GL_TEXTURE_2D, self._textures[j*nx + i])
+                glDrawArrays(GL_QUADS, 0, 4)
+        glDisable(GL_TEXTURE_2D)
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+        glUseProgram(0)
+
+
+
+        
+
 class Histogram(BaseGL):
     def __init__(self):
         self.bins = None

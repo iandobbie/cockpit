@@ -102,7 +102,9 @@ class ViewPanel(wx.Panel):
         ## Canvas we paint the camera's view onto. Created when we connect a
         # camera, and destroyed after.
         self.canvas = None
-
+        self.merged = False
+        self.mergedCanvas = None
+        
         self.disable()
 
         events.subscribe(events.FILTER_CHANGE, self.onFilterChange)
@@ -212,6 +214,18 @@ class ViewPanel(wx.Panel):
     ## Receive a new image and send it to our canvas.
     def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
+        if self.mergedOn:
+            if self.curCamera.wavelength <500 :
+                #blue
+                col=3
+            else if self.curCamera.wavelength <600 :
+                #green
+                col=2
+            else:
+                #red
+                col=1
+            self.mergeCanvas.setImage(data,col)
+        
         if not experiment.isRunning():
             self.metadata = metadata
             self.imagePos = self.metadata['imagePos']
