@@ -145,6 +145,29 @@ class LightControlsPanel(wx.Panel):
         self.SetSizerAndFit(self.Sizer)
 
 
+
+        
+
+class MergedCameraPanel(wx.Panel):
+    """A panel for a merged colour view."""
+    def __init__(self, parent, cameras):
+        super().__init__(parent, style=wx.BORDER_RAISED)
+        self.cameras = cameras
+        self.Sizer = wx.BoxSizer(wx.VERTICAL)
+        self.button = EnableButton(self, self.cameras)
+#        self.button.setState(self.camera.state)
+        self.Sizer.Add(self.button, flag=wx.EXPAND)
+        self.Sizer.AddSpacer(2)
+
+        line_height = int(self.GetFont().GetFractionalPointSize() / 2.0)
+        self.line = wx.StaticText(self, label="", size=(-1, line_height))
+        self.line.SetBackgroundColour(wavelengthToColor(self.camera.wavelength or 0))
+        self.Sizer.Add(self.line, flag=wx.EXPAND)
+        # If there are problems here, it's because the inline function below is
+        # being called outside of the main thread and needs taking out and
+        # wrapping with wx.CallAfter.
+         
+
 class CameraPanel(wx.Panel):
     """A panel of controls for a single camera."""
     def __init__(self, parent, camera):
@@ -217,8 +240,22 @@ class CameraControlsPanel(wx.Panel):
             sz.Add(panel, flag=wx.EXPAND)
             self.panels[cam] = panel
             sz.AddSpacer(4)
+        button=wx.ToggleButton(self, wx.ID_ANY, "Merged Display")
+        button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.toggleMerged())
+        sz.Add(button)
         self.Sizer.Layout()
         self.SetSizerAndFit(self.Sizer)
+
+    def toggleMerged(self):
+        #function needs to decide if there is more than one camera active
+        #bind to new image events for all active cameras
+        #when new images arrive create array for 3 channel colours
+        #add new images to the corretc colour channel
+        #upload as new texture to combined image panel
+        
+
+        
+        print("toggled merge")
 
 
 class ObjectiveControls(wx.Panel):
