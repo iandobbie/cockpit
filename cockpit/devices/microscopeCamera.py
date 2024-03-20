@@ -305,7 +305,10 @@ class MicroscopeCamera(MicroscopeBase, CameraDevice):
         before another can be started, in milliseconds."""
         # Camera uses time in s; cockpit uses ms.
         #Note cycle time is exposure+Readout!
-        t_cyc = self._proxy.get_cycle_time() * 1000.0
+        # picamera can't seem to connection unless we just get variable
+        # then dop the maths
+        cycle = self._proxy.get_cycle_time()
+        t_cyc = cycle * 1000.0
         t_exp = self._proxy.get_exposure_time() * 1000.0
         t = t_cyc - t_exp
         if isExact:

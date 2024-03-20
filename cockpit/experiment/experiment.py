@@ -396,7 +396,7 @@ class Experiment:
 
                     events.executeAndWaitFor(events.EXPERIMENT_EXECUTION,
                             best.executeTable, self.table, curIndex,
-                            curIndex + bestLen, numReps, repDuration)
+                            curIndex + bestLen, numReps, (repDuration+3000))
                     curIndex += bestLen
 
             if shouldStop:
