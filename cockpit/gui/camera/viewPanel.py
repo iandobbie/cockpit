@@ -102,7 +102,7 @@ class ViewPanel(wx.Panel):
         ## Canvas we paint the camera's view onto. Created when we connect a
         # camera, and destroyed after.
         self.canvas = None
-        self.merged = False
+        self.mergedOn = False
         self.mergedCanvas = None
         
         self.disable()
@@ -178,7 +178,7 @@ class ViewPanel(wx.Panel):
 
         # NB the 512 here is the largest texture size our graphics card can
         # gracefully handle.
-        self.canvas = cockpit.gui.imageViewer.viewCanvas.ViewCanvas(self.canvasPanel,
+        self.canvas = cockpit.gui.imageViewer.viewCanvas.ViewCanvas(self.canvasPanel, colour=False,
         size = (VIEW_WIDTH, VIEW_HEIGHT))
         self.canvas.SetSize((VIEW_WIDTH, VIEW_HEIGHT))
         self.canvas.resetView()
@@ -215,15 +215,16 @@ class ViewPanel(wx.Panel):
     def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
         if self.mergedOn:
-            if self.curCamera.wavelength <500 :
+            if (self.curCamera.wavelength < 500):
                 #blue
                 col=3
-            else if self.curCamera.wavelength <600 :
+            elif (self.curCamera.wavelength < 600):
                 #green
                 col=2
             else:
                 #red
                 col=1
+            print("sending col ",col)
             self.mergeCanvas.setImage(data,col)
         
         if not experiment.isRunning():
