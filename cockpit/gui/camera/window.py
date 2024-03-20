@@ -85,6 +85,12 @@ class CamerasWindow(wx.Frame):
         for i in range(self.numCameras):
             view = viewPanel.ViewPanel(self.panel)
             self.views.append(view)
+        if (self.numCameras >1):
+            #add a merged colour view panel on end of list if we have more than
+            #one camera
+            view = viewPanel.ViewPanel(self.panel)
+            self.views.append(view)
+
 
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
         events.subscribe(events.IMAGE_PIXEL_INFO, self.onImagePixelInfo)

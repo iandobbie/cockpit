@@ -616,10 +616,13 @@ class Histogram(BaseGL):
 # and tiling them together.
 class ViewCanvas(wx.glcanvas.GLCanvas):
     ## Instantiate.
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, colour = False, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
-
-        self.image = Image()
+        if not colour:
+            # monochrome or merged colour image?
+            self.image = Image()
+        else:
+            self.image= ColourImage()
         self.histogram = Histogram()
 
         ## Menu - keep reference to store state of toggle buttons.
