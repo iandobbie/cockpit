@@ -255,7 +255,7 @@ class Experiment:
                                                      max_wavelength)
 
             saver = dataSaver.DataSaver(self.cameras, self.numReps,
-                                        self.repDuration
+                                        self.repDuration,
                                         self.cameraToImageCount,
                                         self.cameraToIgnoredImageIndices,
                                         self._run_thread, self.savePath,
