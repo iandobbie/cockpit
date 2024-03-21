@@ -72,6 +72,7 @@ class DataSaver:
     ## \param cameras List of CameraHandler instances for the cameras that
     #         will be generating images
     # \param numReps How many times the experiment will be repeated.
+    # \param repDuration How long each rep lasts.  
     # \param cameraToImagesPerRep Maps camera handlers to how many images to
     #        expect for that camera in a single repeat of the experiment.
     # \param cameraToIgnoredImageIndices Maps camera handlers to indices of
@@ -90,6 +91,7 @@ class DataSaver:
                  titles, cameraToExcitation):
         self.cameras = cameras
         self.numReps = numReps
+        self.repDuration = repDuration
         self.cameraToImagesPerRep = cameraToImagesPerRep
         self.cameraToIgnoredImageIndices = cameraToIgnoredImageIndices
         self.runThread = runThread
@@ -170,6 +172,7 @@ class DataSaver:
         ## Time at which we last received an image, so we know when images
         # have stopped arriving.
         self.lastImageTime = time.time()
+        self.startTime = time.time()
 
         ## Filehandles we will write the data to.
         self.filehandles = []
@@ -335,7 +338,9 @@ class DataSaver:
         # Wait until it's been a bit without getting any more images in, or
         # until we have all the images we expected to get for each camera.
         while (time.time() - self.lastImageTime < 1.0
-               or not self.imageQueue.empty()):
+               or not self.imageQueue.empty() or
+               ((time.time() - self.startTime) < self.repDuration*self.numReps):
+            print ((time.time() - self.startTime),self.repDuration*self.numReps)
             amDone = True
             for camera in self.cameras:
                 total = self.imagesKept[self.cameraToIndex[camera]]
