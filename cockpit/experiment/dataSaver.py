@@ -72,7 +72,7 @@ class DataSaver:
     ## \param cameras List of CameraHandler instances for the cameras that
     #         will be generating images
     # \param numReps How many times the experiment will be repeated.
-    # \param repDuration How long each rep lasts.  
+    # \param repDuration How long each rep lasts.
     # \param cameraToImagesPerRep Maps camera handlers to how many images to
     #        expect for that camera in a single repeat of the experiment.
     # \param cameraToIgnoredImageIndices Maps camera handlers to indices of
@@ -564,10 +564,10 @@ class StatusUpdateThread(threading.Thread):
                     self.updateText()
                     prevCounts = list(self.imagesReceived)
             else:
-                # No images; wait a bit.
+                # No images; wait a bit, but update wait text every 0.5s
                 time.sleep(.1)
                 count=count+1
-                if count==9:
+                if count==5:
                     count=0
                     self.updateText()
         # Clear the status light.
