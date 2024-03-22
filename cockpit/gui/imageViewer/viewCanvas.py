@@ -623,6 +623,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
             self.image = Image()
         else:
             self.image= ColourImage()
+            print("enable colour")
         self.histogram = Histogram()
 
         ## Menu - keep reference to store state of toggle buttons.

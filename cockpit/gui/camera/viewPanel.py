@@ -102,7 +102,6 @@ class ViewPanel(wx.Panel):
         ## Canvas we paint the camera's view onto. Created when we connect a
         # camera, and destroyed after.
         self.canvas = None
-        self.mergedOn = False
         self.mergedCanvas = None
         
         self.disable()
@@ -186,6 +185,27 @@ class ViewPanel(wx.Panel):
         # Subscribe to new image events only after canvas is prepared.
         events.subscribe(events.NEW_IMAGE % self.curCamera.name, self.onImage)
 
+    ## Activate the view and connect to a data source.
+    def enableColour(self):
+        self.selector.SetLabel("Merged Colour View")
+        self.selector.SetBackgroundColour((100,200,255))
+        self.selector.Refresh()
+        self.curCamera = colCamera("merge")
+
+        # NB the 512 here is the largest texture size our graphics card can
+        # gracefully handle.
+        self.canvas = cockpit.gui.imageViewer.viewCanvas.ViewCanvas(self.canvasPanel, colour=True,
+        size = (VIEW_WIDTH, VIEW_HEIGHT))
+        self.canvas.SetSize((VIEW_WIDTH, VIEW_HEIGHT))
+        self.canvas.resetView()
+
+        # Subscribe to new image events only after canvas is prepared.
+
+#        events.subscribe(events.NEW_IMAGE % self.curCamera.name, self.onImage)
+
+
+
+        
     # TODO: This needs revision, too many sizes are being set
     def change_size(self, size=wx.Size(VIEW_WIDTH, VIEW_HEIGHT - 40)):
         size_corrected = wx.Size(size[0], size[1] + 30)
@@ -214,7 +234,10 @@ class ViewPanel(wx.Panel):
     ## Receive a new image and send it to our canvas.
     def onImage(self, data, metadata, *args):
         self.canvas.setImage(data)
-        if self.mergedOn:
+        mergedOn=cockpit.gui.camera.window.window.mergedOn
+        wls=self.curCamera.wavelength
+        print (wls)
+        if mergedOn:
             if (self.curCamera.wavelength < 500):
                 #blue
                 col=3
@@ -256,3 +279,8 @@ class ViewPanel(wx.Panel):
         if self.curCamera is not None:
             descString = "for %s" % self.curCamera.name
         return "<Camera ViewPanel %s>" % descString
+
+
+class colCamera():
+    def __init__(self,name):
+        self.name = name
