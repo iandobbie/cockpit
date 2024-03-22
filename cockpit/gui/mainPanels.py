@@ -22,6 +22,7 @@ import wx
 
 import cockpit.interfaces.channels
 from cockpit import depot
+from cockpit import events
 from cockpit.util.colors import wavelengthToColor
 from cockpit.gui.device import EnableButton
 from cockpit.gui import safeControls
@@ -224,6 +225,7 @@ class CameraControlsPanel(wx.Panel):
     """Creates a CameraPanel for each camera."""
     def __init__(self, parent):
         super().__init__(parent)
+        self.displayMerged = False
         self.Sizer = wx.BoxSizer(wx.VERTICAL)
         sz = wx.BoxSizer(wx.HORIZONTAL)
         label = PanelLabel(self, label="Cameras")
@@ -252,10 +254,10 @@ class CameraControlsPanel(wx.Panel):
         #when new images arrive create array for 3 channel colours
         #add new images to the corretc colour channel
         #upload as new texture to combined image panel
+        self.displayMerged = not self.displayMerged
+        events.publish(events.MERGE_ENABLE,self.displayMerged)
         
-        
-        
-        print("toggled merge")
+        print("toggled merge",self.displayMerged)
 
 
 class ObjectiveControls(wx.Panel):

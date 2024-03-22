@@ -82,6 +82,7 @@ class CamerasWindow(wx.Frame):
         self.sizer = wx.FlexGridSizer(2, 5, 5)
         ## List of ViewPanels we contain.
         self.views = []
+        self.mergedOn = False
         for i in range(self.numCameras):
             view = viewPanel.ViewPanel(self.panel)
             self.views.append(view)
@@ -93,6 +94,7 @@ class CamerasWindow(wx.Frame):
 
 
         events.subscribe(events.CAMERA_ENABLE, self.onCameraEnableEvent)
+        events.subscribe(events.MERGE_ENABLE, self.onMergeEnableEvent)
         events.subscribe(events.IMAGE_PIXEL_INFO, self.onImagePixelInfo)
         cockpit.gui.keyboard.setKeyboardHandlers(self)
 
@@ -112,6 +114,20 @@ class CamerasWindow(wx.Frame):
                     view.disable()
         self.resetGrid()
 
+
+    @cockpit.util.threads.callInMainThread
+    def onMergeEnableEvent(self, enabled):
+        activeViews = [view for view in self.views if view.getIsEnabled()]
+        if enabled and 'merge' not in [view.curCamera.name for view in activeViews]:
+            inactiveViews = set(self.views).difference(activeViews)
+            inactiveViews.pop().enableColour()
+            self.mergedOn = True
+        elif not(enabled):
+            for view in activeViews:
+                if view.curCamera.name is 'merge':
+                    view.disable()
+                    self.mergedOn = False
+        self.resetGrid()
 
     # When cameras are enabled/disabled, we resize the UI to suit. We
     # want there to always be at least one unused ViewPanel so the

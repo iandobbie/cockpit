@@ -68,6 +68,10 @@ the system expects.
     take additional init steps.
 
 ``CAMERA_ENABLE``
+   Enable a specific camera view in the camera views
+
+``MERGE_ENABLE`` 
+   Enable the merged colour camera view in the camera views
 
 ``UPDATE_ROI``
     A camera has updated its ROI which might change other displays.
@@ -187,6 +191,7 @@ CLEANUP_AFTER_EXPERIMENT = 'cleanup after experiment'
 LIGHT_SOURCE_ENABLE = 'light source enable'
 LIGHT_EXPOSURE_UPDATE = 'light exposure update'
 CAMERA_ENABLE = 'camera enable'
+MERGE_ENABLE = 'merge enable'
 UPDATE_ROI = 'update roi'
 FILTER_CHANGE = 'filter change'
 STAGE_POSITION = 'stage position'
