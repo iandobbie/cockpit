@@ -198,8 +198,8 @@ class ViewPanel(wx.Panel):
         size = (VIEW_WIDTH, VIEW_HEIGHT))
         self.canvas.SetSize((VIEW_WIDTH, VIEW_HEIGHT))
         self.canvas.resetView()
-
-        # Subscribe to new image events only after canvas is prepared.
+        cockpit.gui.camera.window.window.mergedCanvas=self.canvas
+        # Subscribe to new image events only after canvas is prepared.merged
 
 #        events.subscribe(events.NEW_IMAGE % self.curCamera.name, self.onImage)
 
@@ -248,7 +248,7 @@ class ViewPanel(wx.Panel):
                 #red
                 col=1
             print("sending col ",col)
-            self.mergeCanvas.setImage(data,col)
+            cockpit.gui.camera.window.window.mergedCanvas.setColImage(data,col)
         
         if not experiment.isRunning():
             self.metadata = metadata
