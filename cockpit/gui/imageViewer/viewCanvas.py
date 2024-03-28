@@ -68,7 +68,7 @@ import traceback
 import wx
 import wx.glcanvas
 import operator
-
+import time
 
 ## @package cockpit.gui.imageViewer.viewCanvas
 # This module provides a canvas for displaying camera images.
@@ -656,6 +656,8 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         
         ## Queue of incoming images that we need to either display or discard.
         self.imageQueue = queue.Queue()
+        self.colimageQueue = queue.Queue()
+        
         ## Current image we're working with.
         self.imageData = None
         ## Event that signals that we've finished drawing the current image.
@@ -784,6 +786,14 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         self.definedROI = False # new image will have new ROI.
 
 
+    ## Receive a new image. This will trigger processImages(), below, to
+    # actually display the image.
+    def setColImage(self, newImage, colour):
+        print("got image")
+        self.colimageQueue.put_nowait((newImage, colour))
+        self.definedROI = False # new image will have new ROI.
+
+        
     ## Consume images out of self.imageQueue and either display them or
     # discard them. Because images can arrive very rapidly at times, we
     # want to ensure that we don't jam up -- if several images arrive while
@@ -791,31 +801,40 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
     @cockpit.util.threads.callInNewThread
     def processImages(self):
         while self.shouldDraw:
-            # Grab all images out of the queue; we'll use the most recent one.
-            newImage = self.imageQueue.get()
-            while not self.imageQueue.empty():
-                newImage = self.imageQueue.get_nowait()
-            # We want to autoscale to the image if it's our first one.
-            isFirstImage = self.imageData is None
-            self.imageData = newImage
-            # When the image shape changes, we reset back to filling the
-            # display with the image.
-            shouldResetView = self.imageShape != newImage.shape
-            self.imageShape = newImage.shape
-            self.histogram.setData(newImage)
-            if self.showFFT:
-                self.image.setData(np.log(np.abs(np.fft.fftshift(np.fft.fft2(self.imageData))) + 1e-16))
-            else:
-                self.image.setData(newImage)
-            if shouldResetView:
-                self.resetView()
-            if isFirstImage:
-                self.image.autoscale()
-            wx.CallAfter(self.Refresh)
-            # Wait for the image to be drawn before we do anything more.
-            self.drawEvent.wait()
-            self.drawEvent.clear()
+            if not self.imageQueue.empty():
+                # Grab all images out of the queue; we'll use the most recent one.
+                newImage = self.imageQueue.get()
+                while not self.imageQueue.empty():
+                    newImage = self.imageQueue.get_nowait()
+                # We want to autoscale to the image if it's our first one.
+                isFirstImage = self.imageData is None
+                self.imageData = newImage
+                # When the image shape changes, we reset back to filling the
+                # display with the image.
+                shouldResetView = self.imageShape != newImage.shape
+                self.imageShape = newImage.shape
+                self.histogram.setData(newImage)
+                if self.showFFT:
+                    self.image.setData(np.log(np.abs(np.fft.fftshift(np.fft.fft2(self.imageData))) + 1e-16))
+                else:
+                    self.image.setData(newImage)
+                if shouldResetView:
+                    self.resetView()
+                if isFirstImage:
+                    self.image.autoscale()
+                wx.CallAfter(self.Refresh)
+                # Wait for the image to be drawn before we do anything more.
+                self.drawEvent.wait()
+                self.drawEvent.clear()
 
+            elif not self.colimageQueue.empty():
+                newImage,col = self.colimageQueue.get()
+                print("col image = ",col)
+                wx.CallAfter(self.Refresh)
+                # Wait for the image to be drawn before we do anything more.
+                self.drawEvent.wait()
+                self.drawEvent.clear()
+            time.sleep(0.1)
 
     ## Return the blackpoint and whitepoint (i.e. the pixel values which
     # are displayed as black and white, respectively).
