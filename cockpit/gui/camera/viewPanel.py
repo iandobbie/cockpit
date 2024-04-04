@@ -237,7 +237,7 @@ class ViewPanel(wx.Panel):
         mergedOn=cockpit.gui.camera.window.window.mergedOn
         wls=self.curCamera.wavelength
         print (wls)
-        if mergedOn:
+        if mergedOn and (wls != None):
             if (self.curCamera.wavelength < 500):
                 #blue
                 col=3
