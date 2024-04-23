@@ -124,7 +124,7 @@ class CamerasWindow(wx.Frame):
             self.mergedOn = True
         elif not(enabled):
             for view in activeViews:
-                if view.curCamera.name is 'merge':
+                if view.curCamera.name == 'merge':
                     view.disable()
                     self.mergedOn = False
         self.resetGrid()

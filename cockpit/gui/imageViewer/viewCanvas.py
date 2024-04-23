@@ -723,6 +723,9 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
         # Initialise FFT variables
         self.showFFT = False
 
+        #store number of active colours for merged view
+        self.numCols = 0
+
     def onDPIchange(self,event):
         #rescale the glcanvas object if needed
         self.w, self.h = self.GetClientSize()*self.GetContentScaleFactor()
@@ -789,9 +792,27 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
     ## Receive a new image. This will trigger processImages(), below, to
     # actually display the image.
     def setColImage(self, newImage, colour):
-        print("got image")
-        self.colimageQueue.put_nowait((newImage, colour))
-        self.definedROI = False # new image will have new ROI.
+        #testing hack assume 3 cols r,g,b
+        
+        #cols is list of active cams
+        numcams = len(wx.GetApp().Imager.activeCameras)
+        if self.numCols != numcams:
+            #new image needed as num actvie cams has changed
+            self.cols=[False] * numcams
+            self.definedROI = False # new image will have new ROI.
+            #this assumes that all cams have the same shape, avoiding this
+            #is not trivial
+            self.colImage = np.zeros((numcams,newImage.shape[0],
+                                      newImage.shape[1]))
+        print("got image", colour)
+        self.cols[colour-1]=True
+
+        self.colImage[colour-1,:,:]=newImage
+        if all(self.cols):
+            self.colimageQueue.put_nowait(colImage)
+            #reset cols array to expect new images
+            self.cols=[False] * numcams
+
 
         
     ## Consume images out of self.imageQueue and either display them or
@@ -828,8 +849,11 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                 self.drawEvent.clear()
 
             elif not self.colimageQueue.empty():
-                newImage,col = self.colimageQueue.get()
+                colImage = self.colimageQueue.get()
                 print("col image = ",col)
+                self.image.setData(colImage)
+                #hack to present a single histogram, need a new colour hist)
+                self.histogram.setData(colImage[0])
                 wx.CallAfter(self.Refresh)
                 # Wait for the image to be drawn before we do anything more.
                 self.drawEvent.wait()
