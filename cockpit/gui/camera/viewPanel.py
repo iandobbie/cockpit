@@ -247,7 +247,6 @@ class ViewPanel(wx.Panel):
             else:
                 #red
                 col=1
-            print("sending col ",col)
             cockpit.gui.camera.window.window.mergedCanvas.setColImage(data,col)
         
         if not experiment.isRunning():
