@@ -55,13 +55,13 @@
 # devices have already been initialized.
 
 import io
-import os.path
 import pkg_resources
 import subprocess
 import sys
 import typing
 from configparser import ConfigParser
 from itertools import chain
+from pathlib import Path
 
 import wx
 import wx.adv
@@ -393,6 +393,7 @@ class ChannelsMenu(wx.Menu):
         filepath = wx.SaveFileSelector('Select file to export', '')
         if not filepath:
             return
+        filepath = Path(filepath)
         try:
             cockpit.interfaces.channels.SaveToFile(filepath,
                                                    wx.GetApp().Channels)
@@ -405,6 +406,7 @@ class ChannelsMenu(wx.Menu):
         filepath = wx.LoadFileSelector('Select file to import', '')
         if not filepath:
             return
+        filepath = Path(filepath)
         try:
             new_channels = cockpit.interfaces.channels.LoadFromFile(filepath)
         except:
@@ -595,6 +597,7 @@ class MainWindow(wx.Frame):
         filepath = wx.LoadFileSelector('Select file to open', '', parent=self)
         if not filepath:
             return
+        filepath = Path(filepath)
         try:
             cockpit.gui.fileViewerWindow.FileViewer(filepath, parent=self)
         except Exception as ex:
@@ -737,8 +740,7 @@ def CockpitAboutInfo() -> wx.adv.AboutDialogInfo:
         # We should not have to set this, it should be set later via
         # the AboutBox parent icon.  We don't yet have icons working
         # (issue #388), but remove this when it is.
-        info.SetIcon(wx.Icon(os.path.join(cockpit.gui.IMAGES_PATH,
-                                          'cockpit-8bit.ico')))
+        info.SetIcon(wx.Icon(str(cockpit.gui._get_image_resource(Path("cockpit-8bit.ico")))))
 
         info.SetLicence('Cockpit is free software: you can redistribute it'
                         ' and/or modify\nit under the terms of the GNU General'

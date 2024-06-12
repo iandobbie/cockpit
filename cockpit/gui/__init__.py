@@ -65,25 +65,19 @@ And some of its modules are:
 
 """
 
-
+import importlib.resources
 import sys
 import traceback
+from pathlib import Path
 
-import pkg_resources
 import wx
 import wx.lib.newevent
 
 import cockpit.events
 
 
-## The resource_name argument for resource_filename is not a
-## filesystem filepath.  It is a /-separated filepath, even on
-## windows, so do not use os.path.join.
-
-IMAGES_PATH = pkg_resources.resource_filename(
-    'cockpit',
-    'resources/images/'
-)
+def _get_image_resource(image_relpath: Path) -> Path:
+    return importlib.resources.files("cockpit") / "resources" / "images" / image_relpath
 
 
 ## A single event type for all cockpit.events. The origian cockpit

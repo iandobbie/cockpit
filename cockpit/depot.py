@@ -56,8 +56,8 @@
 
 import collections
 import configparser
-import os
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from cockpit.devices.dummies import (
     DummyCamera,
@@ -118,7 +118,7 @@ class DeviceDepot:
         ## TODO: we will want to remove this print statements when
         ## we're done refactoring the location of the log and config
         ## files (issue #320)
-        print("Cockpit is running from %s" % os.path.split(os.path.abspath(__file__))[0])
+        print("Cockpit is running from %s" % Path(__file__).absolute().parent)
 
         # Create our server
         ## TODO remove special case by having fallback empty section?

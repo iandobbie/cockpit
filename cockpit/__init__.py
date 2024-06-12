@@ -59,7 +59,7 @@ import argparse
 import importlib
 import logging
 import os
-import os.path
+import pathlib
 import sys
 import threading
 import time
@@ -179,7 +179,7 @@ class CockpitApp(wx.App):
             )
             self._stage = cockpit.interfaces.stageMover.mover
             self._channels = cockpit.interfaces.channels.Channels()
-            for fpath in self.Config['global'].getpaths('channel-files', []):
+            for fpath in self.Config['global'].getpaths('channel-files', ''):
                 new_channels = cockpit.interfaces.channels.LoadFromFile(fpath)
                 self._channels.Update(new_channels)
 
@@ -358,6 +358,7 @@ def _parse_cmd_line_args(cmd_line_args: List[str]) -> argparse.Namespace:
         "--config-file",
         dest="config_files",
         action="append",
+        type=pathlib.Path,
         default=[],
         metavar="COCKPIT-CONFIG-PATH",
         help="File path for another cockpit config file",
@@ -385,6 +386,7 @@ def _parse_cmd_line_args(cmd_line_args: List[str]) -> argparse.Namespace:
         "--depot-file",
         dest="depot_files",
         action="append",
+        type=pathlib.Path,
         default=[],
         metavar="DEPOT-CONFIG-PATH",
         help="File path for depot device configuration"
@@ -413,10 +415,10 @@ def _configure_logging(config) -> None:
             section for the logger.
     """
     log_dir = config.getpath('dir')
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
 
     filename = time.strftime(config.get('filename-template'))
-    filepath = os.path.join(log_dir, filename)
+    filepath = log_dir /  filename
 
     level = getattr(logging, config.get('level').upper())
 
@@ -456,7 +458,7 @@ def _pre_gui_init(argv: List[str]) -> cockpit.config.CockpitConfig:
 
     data_dir = config.getpath('global', 'data-dir')
     _logger.info("Creating data-dir '%s' if needed", data_dir)
-    os.makedirs(data_dir, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
 
     return config
 

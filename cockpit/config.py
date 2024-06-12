@@ -29,12 +29,18 @@ default config files and values, and command line options.
 import argparse
 import configparser
 import importlib
+import logging
 import os
 import os.path
 import sys
 import typing
+from pathlib import Path
+from typing import List, Type, Union
 
 import Pyro4
+
+
+_logger = logging.getLogger(__name__)
 
 
 _PROGRAM_NAME = 'cockpit'
@@ -44,9 +50,9 @@ class CockpitConfig(configparser.ConfigParser):
     """Configuration for cockpit.
 
     Args:
-        cmd_line_options (argparse.Namespace): parsed command line
-            options, which controls which configuration files are
-            read, and is then merged into the configuration itself.
+        cmd_line_options: parsed command line options, which controls
+            which configuration files are read, and is then merged
+            into the configuration itself.
 
     """
     def __init__(self, cmd_line_options: argparse.Namespace):
@@ -54,12 +60,12 @@ class CockpitConfig(configparser.ConfigParser):
         self.read_dict(_default_cockpit_config())
 
         ## Check if depot or config files specified exist (see #710).
-        for fname in cmd_line_options.depot_files:
-            if not (os.path.isfile(fname) and os.access(fname, os.R_OK)):
-                raise Exception("Unable to read depot file %s" % fname)
-        for fname in cmd_line_options.config_files:
-            if not (os.path.isfile(fname) and os.access(fname, os.R_OK)):
-                raise Exception("Unable to read config file %s" % fname)
+        for fpath in cmd_line_options.depot_files:
+            if not fpath.is_file() or not os.access(fpath, os.R_OK):
+                raise Exception("Unable to read depot file %s" % fpath)
+        for fpath in cmd_line_options.config_files:
+            if not fpath.is_file() or not os.access(fpath, os.R_OK):
+                raise Exception("Unable to read config file %s" % fpath)
 
         ## Read cockpit config files.  Least "important" files go
         ## first so that later files can override option values.
@@ -75,7 +81,7 @@ class CockpitConfig(configparser.ConfigParser):
 
         self._depot_config = DepotConfig(self['global'].getpaths('depot-files'))
 
-    def _mixin_cmd_line_options(self, options):
+    def _mixin_cmd_line_options(self, options) -> None:
         ## Multiple depot config files behave different from cockpit
         ## config files in that sections with same name are not merged
         ## or overload one another.  We don't because we believe it to
@@ -101,7 +107,17 @@ class CockpitConfig(configparser.ConfigParser):
             self.set('log', 'level', 'debug')
 
     def _set_depot_files(self, depot_files):
-        self.set('global', 'depot-files', '\n'.join(depot_files))
+        ## FIXME: this is nonsense.  We already have a list of Path
+        ## and need to convert them to strings so that configparser
+        ## can parse them again.  Maybe we should have our own Config
+        ## class and use the ConfigParser class only to parse the ini
+        ## files (also, configparser parses the string value each we
+        ## access it).
+        self.set(
+            'global',
+            'depot-files',
+            '\n'.join([str(f) for f in depot_files])
+        )
 
     @property
     def depot_config(self):
@@ -121,26 +137,26 @@ class DepotConfig(configparser.ConfigParser):
     ``cockpit.depot`` module, may be migrated here with time.
 
     Args:
-        filepaths (list<str>): list of files with device configurations.
+        filepaths: list of files with device configurations.
 
     Raises:
         ``configparser.DuplicateSectionError`` if there's more than
         one device definition on the same or different files.
 
     """
-    def __init__(self, filepaths):
+    def __init__(self, filepaths: List[Path]) -> None:
         super().__init__(converters=_type_converters, interpolation=None)
-        self.files = [] # type: List[str]
+        self.files = [] # type: List[Path]
         self.read(filepaths)
 
-    def read(self, filenames, encoding=None):
+    def read(self, filenames: List[Path], encoding=None):
         """Read depot configuration files.
 
         Raises:
             ``configparser.DuplicateSectionError`` if there's more
             than one device definition on the same or different files.
         """
-        if isinstance(filenames, (str, bytes)): # also os.PathLike for Python 3
+        if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
 
         ## The builtin option to avoid duplicated sections (the strict
@@ -159,7 +175,7 @@ class DepotConfig(configparser.ConfigParser):
 def _default_cockpit_config():
     default = {
         'global' : {
-            'channel-files' : '',
+            'channel-files' : '',  # this is parsed as empty list
             'config-dir' : _default_user_config_dir(),
             'data-dir' : _default_user_data_dir(),
             ## The default value of 'depot-files' is only set after
@@ -192,94 +208,111 @@ def _default_cockpit_config():
     return default
 
 
-def default_system_cockpit_config_files():
+def default_system_cockpit_config_files() -> List[Path]:
     return _default_system_config_files('cockpit.conf')
 
-def default_user_cockpit_config_files():
+def default_user_cockpit_config_files() -> List[Path]:
     return _default_user_config_files('cockpit.conf')
 
-def default_system_depot_config_files():
+def default_system_depot_config_files() -> List[Path]:
     return _default_system_config_files('depot.conf')
 
-def default_user_depot_config_files():
+def default_user_depot_config_files() -> List[Path]:
     return _default_user_config_files('depot.conf')
 
 
-def _default_system_config_dirs():
+def _default_system_config_dirs() -> List[Path]:
     """List of directories, most important first.
     """
     if _is_windows():
-        try:
-            base_dirs = [os.path.expandvars(r'%ProgramData%')]
-        except KeyError: # Fallback according to KNOWNFOLDERID docs
-            base_dirs = [os.path.expandvars(r'%SystemDrive%\ProgramData')]
+        program_data = os.environ.get("ProgramData")
+        if program_data:
+            base_dirs = [Path(program_data)]
+        else:  # Fallback according to KNOWNFOLDERID docs
+            _logger.warning("Empty environment variable 'ProgramData'")
+            base_dirs = [Path(os.environ["SystemDrive"]) / "ProgramData"]
     elif _is_mac():
-        base_dirs = ['/Library/Preferences']
-    else: # freedesktop.org Base Directory Specification
-        base_dirs = _get_nonempty_env('XDG_CONFIG_DIRS', r'/etc/xdg').split(':')
-        base_dirs = [d for d in base_dirs if d] # remove empty entries
-    return [os.path.join(d, _PROGRAM_NAME) for d in base_dirs]
+        base_dirs = [Path("/Library/Preferences")]
+    else:
+        ## freedesktop.org Base Directory Specification
+        xdg_config_dirs = os.getenv("XDG_CONFIG_DIRS", default="").split(":")
+        xdg_config_dirs = [d for d in xdg_config_dirs if d]
+        if xdg_config_dirs:
+            base_dirs = [Path(d) for d in xdg_config_dirs]
+        else:
+            base_dirs = [Path("/etc/xdg")]
 
-def _default_user_config_dir():
+    return [d / _PROGRAM_NAME for d in base_dirs]
+
+def _default_user_config_dir() -> Path:
     if _is_windows():
-        base_dir = os.path.expandvars(r'%LocalAppData%')
+        base_dir = Path(os.environ.get("LocalAppData"))
     elif _is_mac():
-        base_dir = os.path.expanduser(r'~/Library/Application Support')
-    else: # freedesktop.org Base Directory Specification
-        base_dir = _get_nonempty_env(r'XDG_CONFIG_HOME',
-                                     os.path.join(os.environ['HOME'],
-                                                  '.config'))
-    return os.path.join(base_dir, _PROGRAM_NAME)
+        base_dir = Path("~/Library/Application Support").expanduser()
+    else:
+        ## freedesktop.org Base Directory Specification
+        xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
+        if xdg_config_home:
+            base_dir = Path(xdg_config_home)
+        else:
+            base_dir = Path(os.environ["HOME"]) / ".config"
+    return base_dir / _PROGRAM_NAME
 
 
-def _default_user_config_files(fname):
+def _default_user_config_files(fname) -> List[Path]:
     ## In the case of user config, there is always only one directory.
     ## However, for system config case there may be multiple.  Having
     ## *_user_config_* return a string and *_system_config_* return a
     ## list of strings is messy and error prone, so we return a list
     ## even in the case of *_user_config_*.
-    return [os.path.join(_default_user_config_dir(), fname)]
+    return [_default_user_config_dir() / fname]
 
-def _default_system_config_files(fname):
-    return [os.path.join(d, fname) for d in _default_system_config_dirs()]
+def _default_system_config_files(fname) -> List[Path]:
+    return [d / fname for d in _default_system_config_dirs()]
 
 
-def _default_log_dir():
+def _default_log_dir() -> Path:
     if _is_windows():
-        try:
-            base_dir = os.path.expandvars(r'%LocalAppData%')
-        except KeyError: # Fallback according to KNOWNFOLDERID docs
-            base_dir = os.path.expandvars(r'%UserProfile%\AppData\Local')
+        local_app_data = os.environ.get("LocalAppData")
+        if local_app_data:
+            base_dir = Path(local_app_data)
+        else:  # Fallback according to KNOWNFOLDERID docs
+            _logger.warning("Empty environment variable 'LocalAppData'")
+            base_dir = Path(os.environ["UserProfile"]) / "AppData" / "Local"
     elif _is_mac():
-        base_dir = os.path.expanduser(r'~/Library/Logs')
-    else: # freedesktop.org Base Directory Specification
-        base_dir = _get_nonempty_env(
-            'XDG_STATE_HOME',
-            os.path.join(os.environ['HOME'], '.local', 'state')
-        )
-    return os.path.join(base_dir, _PROGRAM_NAME)
+        base_dir = Path("~/Library/Logs").expanduser()
+    else:
+        ## freedesktop.org Base Directory Specification
+        xdg_state_home = os.environ.get("XDG_STATE_HOME")
+        if xdg_state_home:
+            base_dir = Path(xdg_state_home)
+        else:
+            base_dir = Path(os.environ["HOME"]) / ".local" / "state"
+    return base_dir / _PROGRAM_NAME
 
 
-def _default_user_data_dir():
-    return os.path.join('~', 'MUI_DATA')
+def _default_user_data_dir() -> Path:
+    return Path("~/MUI_DATA").expanduser()
 
-
-def _parse_lines(option: str) -> typing.List[str]:
+def _parse_lines(option: str) -> List[str]:
     """``ConfigParser`` type converter for separate lines."""
     return [s.strip() for s in option.splitlines() if s]
 
-def _parse_path(path):
+def _parse_path(path: str) -> Path:
     """``ConfigParser`` type converter for path values.
 
     Expand user before vars like shell does: ``FOO="~" ; ls $FOO/``
     """
-    return os.path.expandvars(os.path.expanduser(path.strip()))
+    ## pathlib devs refuse to implement expandvars so convert to Path
+    ## after expandvars https://github.com/python/cpython/issues/65500
+    return Path(os.path.expandvars(os.path.expanduser(path.strip())))
 
-def _parse_paths(paths):
+def _parse_paths(paths: str) -> List[Path]:
     """``ConfigParser`` type converter for a list of paths, one per line."""
     return [_parse_path(s) for s in paths.split('\n') if s]
 
-def _parse_type(full_name):
+
+def _parse_type(full_name) -> Type:
     """``ConfigParser`` type converter for class fully-qualified names.
 
     Raises:
@@ -312,16 +345,8 @@ _type_converters = {
 }
 
 
-def _get_nonempty_env(key, default):
-    """Like ``os.getenv`` but returns ``default`` if key is empty string."""
-    if os.getenv(key):
-        return os.getenv(key)
-    else:
-        return default
-
-
-def _is_windows():
+def _is_windows() -> bool:
     return sys.platform in ('win32', 'cygwin')
 
-def _is_mac():
+def _is_mac() -> bool:
     return sys.platform == 'darwin'

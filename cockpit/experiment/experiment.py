@@ -62,10 +62,11 @@ import cockpit.interfaces.stageMover
 import decimal
 import gc
 import logging
-import os
 import threading
 import time
 import wx
+from pathlib import Path
+from typing import Optional
 
 
 _logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class Experiment:
     def __init__(self, numReps, repDuration,
             zPositioner, altBottom, zHeight, sliceHeight,
             exposureSettings, otherHandlers = [],
-            metadata = '', savePath = ''):
+                 metadata = '', savePath: Optional[Path] = None):
         self.numReps = numReps
         self.repDuration = repDuration
         self.zPositioner = zPositioner
@@ -139,11 +140,6 @@ class Experiment:
         self.savePath = savePath
 
         self._run_thread = None
-
-        # Check for save paths that don't actually have a final filename
-        # (i.e. just point to a directory); those aren't valid.
-        if not os.path.basename(self.savePath):
-            self.savePath = ''
 
         ## List of all handlers we care about, so we can conveniently set them
         # up.
@@ -198,7 +194,7 @@ class Experiment:
     def run(self):
         # Returns True to close config dialog box, False or None otherwise.
         # Check if the user is set to save to an already-existing file.
-        if self.savePath and os.path.exists(self.savePath):
+        if self.savePath and self.savePath.exists():
             if not guiUtils.getUserPermission(
                     ("The file:\n%s\nalready exists. " % self.savePath) +
                     "Are you sure you want to overwrite it?"):

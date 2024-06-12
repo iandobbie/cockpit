@@ -55,11 +55,11 @@ Mrc2 class section wise file/array I/O
 
 __author__  = "Sebastian Haase <haase@msg.ucsf.edu>"
 
-
+from pathlib import Path
 import numpy as N
 
 
-def bindFile(fn, writable=0):
+def bindFile(fn: Path, writable=0):
     """open existing Mrc file
 
     returns memmaped array
@@ -78,12 +78,11 @@ class ndarray_inMrcFile(N.ndarray):
         self.Mrc = getattr(obj, 'Mrc', None)
 
 class Mrc:
-    def __init__(self, path, mode='r', extHdrSize=0, extHdrNints=0, extHdrNfloats=0):
+    def __init__(self, path: Path, mode='r', extHdrSize=0, extHdrNints=0, extHdrNfloats=0):
         '''mode can be 'r' or 'r+'
         '''
-        import os
-        self.path     = os.path.abspath(path)
-        self.filename = os.path.basename(path)
+        self.path     = path.absolute()
+        self.filename = path.name
 
         if extHdrSize and extHdrSize % 1024:
             raise ValueError("extended header size needs to be integer multiple of 1024")
@@ -250,7 +249,7 @@ class Mrc:
         hdrInfo(self.hdr)
 
 
-    def data_withMrc(self, fn):
+    def data_withMrc(self, fn: Path):
         """use this to get 'spiffed up' array"""
 
         import weakref
@@ -276,10 +275,10 @@ class Mrc:
 ###########################################################################
 ###########################################################################
 
-def open(path, mode='r'):
+def open(path: Path, mode='r'):
     return Mrc2(path, mode)
 
-def load(fn):
+def load(fn: Path):
     '''return 3D array filled with the data
     (non memmap)
     '''
@@ -287,7 +286,7 @@ def load(fn):
     a = m.readStack(m.hdr.Num[2])
     return a
 
-def save(a, fn, ifExists='ask', zAxisOrder=None,
+def save(a, fn: Path, ifExists='ask', zAxisOrder=None,
          hdr=None, hdrEval='',
          calcMMM=True,
          extInts=None, extFloats=None):
@@ -317,8 +316,7 @@ def save(a, fn, ifExists='ask', zAxisOrder=None,
 
     TODO: not implemented yet, extInts=None, extFloats=None
     '''
-    import os
-    if os.path.exists(fn):
+    if fn.exists():
         if ifExists[0] == 'o':
             pass
         elif ifExists[0] == 'a':
@@ -394,7 +392,7 @@ class Mrc2:
         Modes 'r+', 'w+' [and 'a+'] open the file for updating (note that 'w+' truncates the file).
      ('b' for binary mode, is implicitely appended)
     '''
-    def __init__(self, path, mode='r'):
+    def __init__(self, path: Path, mode='r'):
         '''
         path is filename
         mode: same as for Python's open function
@@ -403,10 +401,10 @@ class Mrc2:
             'r+'  read-write
             'w'   write - erases old file !!
         '''
-        import os, builtins
+        import builtins
         self._f = builtins.open(path, mode+'b')
         self._path = path
-        self._name = os.path.basename(path)
+        self._name = path.name
         self._mode = mode
 
         self._hdrSize    = 1024

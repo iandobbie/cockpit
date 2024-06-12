@@ -20,9 +20,8 @@
 
 import logging
 import os
-import os.path
 import pprint
-
+from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 
@@ -34,11 +33,11 @@ _logger = logging.getLogger(__name__)
 
 ## In-memory version of the config; program singleton.
 _config = {}
-_config_path = ''
+_config_path = None
 
 
 ## Open the config file and unserialize its contents.
-def _loadConfig(fpath):
+def _loadConfig(fpath: Path):
     config = {}
     try:
         with open(fpath, 'r') as fh:
@@ -54,17 +53,14 @@ def _loadConfig(fpath):
 
 ## Serialize the current config state for the specified user
 # to the appropriate config file.
-def _writeConfig(config, fpath):
+def _writeConfig(config, fpath: Path):
     ## Use pprint instead of pickle to write the config files so that
     ## their contents are readable.
     printer = pprint.PrettyPrinter()
     if not printer.isreadable(config):
         raise RuntimeError('user config file has non-writable data')
 
-    dirname = os.path.dirname(fpath)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
+    fpath.parent.mkdir(parents=True, exist_ok=True)
     with open(fpath, 'w') as fh:
         fh.write(printer.pformat(config))
 
@@ -104,6 +100,5 @@ def setValue(key, value):
 def initialize(cockpit_config):
     global _config
     global _config_path
-    _config_path = os.path.join(cockpit_config['global'].get('config-dir'),
-                                'config.py')
+    _config_path = cockpit_config['global'].getpath('config-dir') / 'config.py'
     _config = _loadConfig(_config_path)

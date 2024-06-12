@@ -20,6 +20,7 @@
 
 import os
 import sys
+from pathlib import Path
 
 import wx
 import wx.lib.newevent
@@ -103,11 +104,11 @@ class IconButton(wx.ToggleButton):
 
     def _set_properties(self):
         self.SetMinSize(wx.Size(self._cols * 48, self._rows * 48))
-        image = wx.Image(os.path.join(cockpit.gui.IMAGES_PATH, self.icon))
+        image = wx.Image(str(cockpit.gui._get_image_resource(self.icon)))
         self.SetBitmap(image.ConvertToBitmap())
         if self.icon_pressed:
             image = wx.Image(
-                os.path.join(cockpit.gui.IMAGES_PATH, self.icon_pressed)
+                str(cockpit.gui._get_image_resource(self.icon_pressed))
             )
             self.SetBitmapPressed(image.ConvertToBitmap())
         self.Bind(wx.EVT_TOGGLEBUTTON, lambda e: self._visual_feedback(e))
@@ -206,10 +207,10 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_mosaic.png",
+                        Path("touchscreen/action_mosaic.png"),
                         lambda e: self._cb_mosaic(e),
                         toggleable=True,
-                        icon_pressed="touchscreen/action_mosaic.png",
+                        icon_pressed=Path("touchscreen/action_mosaic.png"),
                         helptext="Start the mosaic.",
                     ),
                     wx.GBPosition(0, 0),
@@ -219,7 +220,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_centre.png",
+                        Path("touchscreen/action_centre.png"),
                         lambda e: self._cb_centre(e),
                         helptext="Centre the view on the crosshair.",
                     ),
@@ -230,7 +231,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_erase.png",
+                        Path("touchscreen/action_erase.png"),
                         lambda e: self._cb_erase(e),
                         toggleable=True,
                         helptext="Erase the tile pointed by the crosshair.",
@@ -242,7 +243,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_experiment.png",
+                        Path("touchscreen/action_experiment.png"),
                         lambda e: self._cb_experiment(e),
                         helptext="Setup and perform an experiment.",
                     ),
@@ -253,7 +254,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_marker.png",
+                        Path("touchscreen/action_marker.png"),
                         lambda e: self._cb_marker(e),
                         helptext="Place a marker.",
                     ),
@@ -264,7 +265,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_snap.png",
+                        Path("touchscreen/action_snap.png"),
                         lambda e: self._cb_snap(e),
                         helptext="Take an image with all active cameras.",
                     ),
@@ -275,7 +276,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_live.png",
+                        Path("touchscreen/action_live.png"),
                         lambda e: self._cb_live(e),
                         toggleable=True,
                         helptext=(
@@ -290,7 +291,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_help.png",
+                        Path("touchscreen/action_help.png"),
                         lambda e: self._cb_help(e),
                         toggleable=True,
                         helptext="Show help.",
@@ -302,7 +303,7 @@ class ActionsPanel(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/action_abort.png",
+                        Path("touchscreen/action_abort.png"),
                         lambda e: self._cb_abort(e),
                         cols=2,
                         helptext="Abort the current action.",
@@ -485,14 +486,14 @@ class VariableControlContinuous(wx.Panel):
     def _do_layout(self):
         # Minus button
         img_minus = wx.Image(
-            os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/misc_minus.png")
+            str(cockpit.gui._get_image_resource(Path("touchscreen/misc_minus.png")))
         )
         self._but0 = wx.Button(self, size=wx.Size(24, 24))
         self._but0.SetBitmap(img_minus.ConvertToBitmap())
         self._but0.Bind(wx.EVT_BUTTON, lambda e: self._step(False))
         # Plus button
         img_plus = wx.Image(
-            os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/misc_plus.png")
+            str(cockpit.gui._get_image_resource(Path("touchscreen/misc_plus.png")))
         )
         self._but1 = wx.Button(self, size=wx.Size(24, 24))
         self._but1.SetBitmap(img_plus.ConvertToBitmap())
@@ -585,10 +586,7 @@ class LightsPanelEntry(wx.Panel):
         # First row: wavelength bitmap and a toggle button
         sizer_row0 = wx.BoxSizer(wx.HORIZONTAL)
         img = wx.Image(
-            os.path.join(
-                cockpit.gui.IMAGES_PATH,
-                "touchscreen/misc_wavelength.png",
-            )
+            str(cockpit.gui._get_image_resource(Path("touchscreen/misc_wavelength.png")))
         )
         if self.light:
             img.Replace(
@@ -606,7 +604,7 @@ class LightsPanelEntry(wx.Panel):
         # Second row: exposure control
         sizer_row1 = wx.BoxSizer(wx.HORIZONTAL)
         exposure_img = wx.Image(
-            os.path.join(cockpit.gui.IMAGES_PATH, "touchscreen/misc_pulse.png")
+            str(cockpit.gui._get_image_resource(Path("touchscreen/misc_pulse.png")))
         )
         self.exposure_ctrl = VariableControlContinuous(
             self, init_val=100, step_scale=1.2, units="ms", limit_low=1
@@ -629,9 +627,7 @@ class LightsPanelEntry(wx.Panel):
             # Upper subrow
             sizer_row2_row0 = wx.BoxSizer(wx.HORIZONTAL)
             power_img = wx.Image(
-                os.path.join(
-                    cockpit.gui.IMAGES_PATH, "touchscreen/misc_power.png"
-                )
+                str(cockpit.gui._get_image_resource(Path("touchscreen/misc_power.png")))
             )
             self.power_ctrl = VariableControlContinuous(
                 self,
@@ -769,10 +765,7 @@ class CamerasPanelEntry(wx.Panel):
         # First row: bitmap, and toggle button
         sizer_row0 = wx.BoxSizer(wx.HORIZONTAL)
         img = wx.Image(
-            os.path.join(
-                cockpit.gui.IMAGES_PATH,
-                "touchscreen/misc_wavelength.png",
-            )
+            str(cockpit.gui._get_image_resource(Path("touchscreen/misc_wavelength.png")))
         )
         if self.camera_handler.wavelength:
             img.Replace(255, 255, 255, *self.camera_handler.color)
@@ -1196,7 +1189,7 @@ class StageControlXY(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_left.png",
+                        Path("touchscreen/stage_move_left.png"),
                         lambda e: self._cb_move_left(e),
                         helptext="Move one step left.",
                     ),
@@ -1205,7 +1198,7 @@ class StageControlXY(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_up.png",
+                        Path("touchscreen/stage_move_up.png"),
                         lambda e: self._cb_move_up(e),
                         helptext="Move one step up.",
                     ),
@@ -1214,7 +1207,7 @@ class StageControlXY(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_down.png",
+                        Path("touchscreen/stage_move_down.png"),
                         lambda e: self._cb_move_down(e),
                         helptext="Move one step down.",
                     ),
@@ -1223,7 +1216,7 @@ class StageControlXY(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_right.png",
+                        Path("touchscreen/stage_move_right.png"),
                         lambda e: self._cb_move_right(e),
                         helptext="Move one step right.",
                     ),
@@ -1232,7 +1225,7 @@ class StageControlXY(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_tiles.png",
+                        Path("touchscreen/stage_tiles.png"),
                         lambda e: self._cb_tiles(e),
                         helptext="Show mosaic tiles.",
                     ),
@@ -1315,7 +1308,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_up.png",
+                        Path("touchscreen/stage_move_up.png"),
                         lambda e: self._cb_move_up(e),
                         helptext="Move one step up.",
                     ),
@@ -1324,7 +1317,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_save_top.png",
+                        Path("touchscreen/stage_save_top.png"),
                         lambda e: self._cb_save_top(e),
                         helptext=(
                             "Save the current position as the top soft limit."
@@ -1335,7 +1328,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_top.png",
+                        Path("touchscreen/stage_move_top.png"),
                         lambda e: self._cb_move_top(e),
                         helptext="Move to the top soft limit.",
                     ),
@@ -1344,7 +1337,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_centre.png",
+                        Path("touchscreen/stage_move_centre.png"),
                         lambda e: self._cb_move_centre(e),
                         helptext=(
                             "Move to the centre of the top and bottom"
@@ -1356,7 +1349,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_recentre.png",
+                        Path("touchscreen/stage_recentre.png"),
                         lambda e: self._cb_recentre(e),
                         helptext=(
                             "Recentre all fine stages and then move the course"
@@ -1368,7 +1361,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_down.png",
+                        Path("touchscreen/stage_move_down.png"),
                         lambda e: self._cb_move_down(e),
                         helptext="Move one step down.",
                     ),
@@ -1377,7 +1370,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_save_bottom.png",
+                        Path("touchscreen/stage_save_bottom.png"),
                         lambda e: self._cb_save_bottom(e),
                         helptext=(
                             "Save the current position as the bottom"
@@ -1389,7 +1382,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move_bottom.png",
+                        Path("touchscreen/stage_move_bottom.png"),
                         lambda e: self._cb_move_bottom(e),
                         helptext="Move to the bottom soft limit.",
                     ),
@@ -1398,7 +1391,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_touchdown.png",
+                        Path("touchscreen/stage_touchdown.png"),
                         lambda e: self._cb_touchdown(e),
                         helptext=(
                             "Move to the specimen position, as defined in the"
@@ -1410,7 +1403,7 @@ class StageControlZ(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_switch.png",
+                        Path("touchscreen/stage_switch.png"),
                         lambda e: self._cb_switch(e),
                         helptext="Switch to the next stage.",
                     ),
@@ -1481,7 +1474,7 @@ class StageControlCommon(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_safeties.png",
+                        Path("touchscreen/stage_safeties.png"),
                         lambda e: self._cb_safeties(e),
                         helptext="Change the XYZ soft limits.",
                     ),
@@ -1490,7 +1483,7 @@ class StageControlCommon(wx.Panel):
                 (
                     IconButton(
                         self,
-                        "touchscreen/stage_move.png",
+                        Path("touchscreen/stage_move.png"),
                         lambda e: self._cb_move(e),
                         helptext="Move to a specific XYZ location.",
                     ),

@@ -23,12 +23,13 @@
 ## along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
 import csv
-import glob
 import matplotlib
 import numpy as np
 import os
 import wx
 import sys
+from pathlib import Path
+from typing import List
 
 matplotlib.use('WXAgg')
 import matplotlib.dates
@@ -63,10 +64,10 @@ def make_bitmap(hex, text=None):
 
 
 class DataSource:
-    def __init__(self, path, node):
+    def __init__(self, path: Path, node):
         """A wrapper around CSV-formatted data in a file."""
-        self.path = os.path.abspath(path)
-        self.label = os.path.basename(path).rstrip(".log")
+        self.path = path.absolute()
+        self.label = path.stem
         self._xdata = None
         self._ydata = None
         self._fh = None
@@ -85,7 +86,7 @@ class DataSource:
         """Determine source file dialect and parse headers."""
         if self._headers is None:
             # Dialect determination fails on Windows if we read past EOF, so set a limit.
-            f_len = os.path.getsize(self.path)
+            f_len = self.path.stat().st_size
             with open(self.path) as fh:
                 head = fh.read(min(4096, f_len))
                 self._dialect = csv.Sniffer().sniff(head)()
@@ -103,8 +104,8 @@ class DataSource:
 
 
     @property
-    def name(self):
-        return os.path.basename(self.path)
+    def name(self) -> str:
+        return self.path.name
 
 
     @property
@@ -229,7 +230,9 @@ class CSVPlotter(wx.Frame):
         with wx.FileDialog(self, "Open files", style=style) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
-            self.add_data_sources(fd.Paths, defer_open=len(fd.Paths) > 2)
+            self.add_data_sources(
+                [Path(p) for p in fd.GetPaths()], defer_open=len(fd.Paths) > 2
+            )
 
 
     def _on_select_folder(self, evt):
@@ -238,7 +241,7 @@ class CSVPlotter(wx.Frame):
         with wx.DirDialog(self, "Open folder", style=style) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
-            files = glob.glob(fd.Path + '/*')
+            files = Path(fd.GetPath()).glob('*')
             self.add_data_sources(files, defer_open=len(files) > 2)
 
 
@@ -525,11 +528,11 @@ class CSVPlotter(wx.Frame):
         self.tree.SetEvtHandlerEnabled(True)
 
 
-    def add_data_sources(self, filenames, defer_open=False):
+    def add_data_sources(self, filenames: List[Path], defer_open=False):
         """Set data sources and populate tree."""
         root = self.tree.GetRootItem() or self.tree.AddRoot('Files')
         for fn in filenames:
-            if os.path.abspath(fn) not in self.fn_to_src:
+            if fn.absolute() not in self.fn_to_src:
                 node = self.tree.AppendItem(root, 'empty')
                 try:
                     src = DataSource(fn, node)
@@ -548,14 +551,15 @@ class CSVPlotter(wx.Frame):
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
-        filenames = glob.glob("*.log")
+        filenames = Path(".").glob("*.log")
     else:
         filenames = []
         for arg in sys.argv[1:]:
-            if os.path.isdir(arg):
-                filenames.extend(glob.glob(os.path.join(arg, "*.log")))
+            path = Path(arg)
+            if path.is_dir():
+                filenames.extend(path.glob("*.log"))
             else:
-                filenames.append(arg)
+                filenames.append(path)
 
     from wx.lib.inspection import InspectionTool
 

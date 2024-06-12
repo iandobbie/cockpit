@@ -56,6 +56,9 @@
 # transformations of data on the fly. It's since expanded to provide multiple
 # utility functions for reading and writing MRC files and headers.
 
+from pathlib import Path
+from typing import Optional
+
 from cockpit.util import Mrc
 
 import numpy
@@ -77,7 +80,7 @@ DIMENSION_LABELS = ['Wavelength', 'Time', 'Z', 'Y', 'X']
 class DataDoc:
     ## Instantiate the object.
     # \param filename The filename of the MRC file you want to load.
-    def __init__(self, filename = ''):
+    def __init__(self, filename: Path):
         ## Loaded MRC object. Note this is not just an array of pixels.
         self.image = Mrc.bindFile(filename)
         ## Header for the image data, which tells us e.g. what the ordering
@@ -467,7 +470,7 @@ class DataDoc:
     # to Eric we don't currently use the extended header anyway, so it was
     # just wasting space.
     def alignAndCrop(self, wavelengths = [], timepoints = [],
-            savePath = None):
+            savePath: Optional[Path] = None):
         if not wavelengths:
             wavelengths = range(self.size[0])
         if not timepoints:
@@ -493,10 +496,10 @@ class DataDoc:
         newHeader.ImgSequence = 2
         newHeader.PixelType = Mrc.dtype2MrcMode(numpy.float32)
 
-        if not savePath:
+        if savePath is None:
             outputArray = numpy.empty(croppedShape, numpy.float32)
         else:
-            if self.filePath == savePath:
+            if self.filePath.resolve() == savePath.resolve():
                 # \todo Why do we do this?
                 del self.image.Mrc
 
@@ -528,14 +531,14 @@ class DataDoc:
                 # Crop to the desired shape.
                 volume = volume[volumeSlices].astype(numpy.float32)
 
-                if not savePath:
+                if savePath is None:
                     outputArray[timepoint, waveIndex] = volume
                 else:
                     # Write to the file.
                     for i, zSlice in enumerate(volume):
                         outputFile.write(zSlice)
 
-        if not savePath:
+        if savePath is None:
             # Reorder to WTZYX since that's what the user expects.
             return outputArray.transpose([1, 0, 2, 3, 4])
         else:
@@ -543,7 +546,7 @@ class DataDoc:
 
 
     ## Just save our array to the specified file.
-    def saveTo(self, savePath):
+    def saveTo(self, savePath: Path):
         filehandle = open(savePath, 'wb')
         writeMrcHeader(self.imageHeader, filehandle)
         filehandle.write(self.imageArray)
@@ -687,7 +690,7 @@ def writeMrcHeader(header, filehandle):
 # the input array must be in WTZYX order; if the array has insufficient
 # dimensions it will be augmented with dimensions of size 1 starting from
 # the left (e.g. a 512x512 array becomes a 1x1x1x512x512 array).
-def writeDataAsMrc(data, filename, XYSize = None, ZSize = None, wavelengths = [],
+def writeDataAsMrc(data, filename: Path, XYSize = None, ZSize = None, wavelengths = [],
                    zxy0=None):
     shape = (5 - len(data.shape)) * [1] + list(data.shape)
     data_out = data.reshape(shape)
@@ -704,7 +707,7 @@ def writeDataAsMrc(data, filename, XYSize = None, ZSize = None, wavelengths = []
 # the input array must be in WTZYX order; if the array has insufficient
 # dimensions it will be augmented with dimensions of size 1 starting from
 # the left (e.g. a 512x512 array becomes a 1x1x1x512x512 array).
-def writeDataAsMrcWithExthdr(data, filename, XYSize = None,
+def writeDataAsMrcWithExthdr(data, filename: Path, XYSize = None,
                              ZSize = None, wavelengths = [],
                              zxy0=None, lensID=None, intMetadataBuffers = [],
                              floatMetadataBuffers = []):
@@ -796,7 +799,7 @@ def getExtendedHeader(data, header):
 
 
 ## Load just the header and extended header for the specified filepath.
-def loadHeader(path):
+def loadHeader(path: Path):
     data = numpy.memmap(path)
     headerBuffer = data[:1024]
     header = Mrc.makeHdrArray(headerBuffer)

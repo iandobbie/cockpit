@@ -22,6 +22,7 @@ import collections
 import json
 import typing
 import warnings
+from pathlib import Path
 
 import wx
 
@@ -148,13 +149,13 @@ def ApplyChannel(channel: Channel) -> None:
                               % handler.name)
 
 
-def SaveToFile(filepath: str, channels: Channels) -> None:
+def SaveToFile(filepath: Path, channels: Channels) -> None:
     with open(filepath, 'w') as fh:
         # We should not be accessing internal attributes but
         # alternatives seems overkill since Channels is so simple.
         json.dump(channels._map, fh, indent=2)
 
-def LoadFromFile(filepath: str) -> Channels:
+def LoadFromFile(filepath: Path) -> Channels:
     with open(filepath, 'r') as fh:
         # We should not be doing this manually but alternatives seem
         # overkill since Channels is so simple.

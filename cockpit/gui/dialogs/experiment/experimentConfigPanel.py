@@ -60,10 +60,10 @@ import collections
 import decimal
 import json
 import logging
-import os.path
 import time
 import traceback
 import typing
+from pathlib import Path
 
 import wx
 
@@ -364,11 +364,11 @@ class ExperimentConfigPanel(wx.Panel):
         # Get the filepath to save settings to.
         dialog = wx.FileDialog(self, style = wx.FD_SAVE, wildcard = '*.txt',
                 message = 'Please select where to save the experiment.',
-                defaultDir=wx.GetApp().Config.getpath('global', 'data-dir'))
+                defaultDir=str(wx.GetApp().Config.getpath('global', 'data-dir')))
         if dialog.ShowModal() != wx.ID_OK:
             # User cancelled.
             return
-        filepath = dialog.GetPath()
+        filepath = Path(dialog.GetPath())
         handle = open(filepath, 'w')
         try:
             handle.write(json.dumps(settings))
@@ -384,11 +384,11 @@ class ExperimentConfigPanel(wx.Panel):
     def onLoadExperiment(self, event = None):
         dialog = wx.FileDialog(self, style = wx.FD_OPEN, wildcard = '*.txt',
                 message = 'Please select the experiment file to load.',
-                defaultDir=wx.GetApp().Config.getpath('global', 'data-dir'))
+                defaultDir=str(wx.GetApp().Config.getpath('global', 'data-dir')))
         if dialog.ShowModal() != wx.ID_OK:
             # User cancelled.
             return
-        filepath = dialog.GetPath()
+        filepath = Path(dialog.GetPath())
         handle = open(filepath, 'r')
         settings = json.loads(' '.join(handle.readlines()))
         handle.close()
@@ -472,7 +472,7 @@ class ExperimentConfigPanel(wx.Panel):
             sliceHeight = 1e-6
 
         try:
-            savePath = self.filepath_panel.GetPath()
+            savePath = Path(self.filepath_panel.GetPath())
         except Exception:
             cockpit.gui.ExceptionBox(
                 "Failed to get filename for data.", parent=self
@@ -531,7 +531,7 @@ class FilepathPanel(wx.Panel):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._dir_ctrl = wx.DirPickerCtrl(
-            self, path=wx.GetApp().Config.getpath('global', 'data-dir')
+            self, path=str(wx.GetApp().Config.getpath('global', 'data-dir'))
         )
         self._template_ctrl = wx.TextCtrl(self)
         self._template_ctrl.SetToolTip(
@@ -578,13 +578,13 @@ class FilepathPanel(wx.Panel):
         del evt
         self.UpdateFilename()
 
-    def GetPath(self) -> str:
+    def GetPath(self) -> Path:
         """Return full filepath to use."""
-        dirname = self._dir_ctrl.GetPath()
+        dirname = Path(self._dir_ctrl.GetPath())
         basename = self._fname_ctrl.GetValue()
         if not basename:
             raise Exception("Filename is empty")
-        return os.path.join(dirname, basename)
+        return dirname / basename
 
     def GetTemplate(self) -> str:
         return self._template_ctrl.GetValue()

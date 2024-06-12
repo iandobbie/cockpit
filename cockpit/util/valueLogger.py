@@ -24,10 +24,11 @@ import threading
 import sys
 from collections.abc import Iterable
 from datetime import datetime
+from pathlib import Path
 
-import os.path
 
 DELIMITER = ';'
+
 
 class ValueLogger:
     _fhs = [] # A list of all filehandles opened in this session.
@@ -40,16 +41,15 @@ class ValueLogger:
         self._fhLock = threading.Lock()
         self.keys = keys
         filename = name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".log"
-        self.setLogFile(
-            os.path.join(wx.GetApp().Config.getpath('log', 'dir'), filename)
-        )  # sets self._fh
+        ## sets self._fh
+        self.setLogFile(wx.GetApp().Config.getpath('log', 'dir') / filename)
 
 
     def __del__(self):
         self._fh.close()
 
 
-    def setLogFile(self, filename):
+    def setLogFile(self, filename: Path):
         """Open a file and store file handle."""
         fh = open(filename, 'a')
         if self.keys and fh.tell() == 0:
@@ -87,7 +87,7 @@ class ValueLogger:
     @classmethod
     def getLogFiles(cls):
         """Return the full path to all files opened in this session."""
-        return [os.path.realpath(fh.name) for fh in cls._fhs]
+        return [Path(fh.name).resolve() for fh in cls._fhs]
 
 
 class PollingLogger(ValueLogger):

@@ -22,11 +22,10 @@ import configparser
 import contextlib
 import decimal
 import os
-import os.path
-import posixpath
 import tempfile
 import unittest
 import unittest.mock
+from pathlib import Path
 
 import cockpit
 import cockpit.config
@@ -42,8 +41,7 @@ def patch_like_linux(func):
     """
     not_win = unittest.mock.patch('cockpit.config._is_windows', lambda : False)
     not_mac = unittest.mock.patch('cockpit.config._is_mac', lambda : False)
-    posix_path = unittest.mock.patch('os.path', posixpath)
-    return posix_path(not_mac(not_win(func)))
+    return not_mac(not_win(func))
 
 
 def patched_env(values):
@@ -100,8 +98,8 @@ class TempConfigFile:
         self._file.flush()
 
     @property
-    def path(self):
-        return self._file.name
+    def path(self) -> Path:
+        return Path(self._file.name)
 
 
 class TempConfigBaseDir:
@@ -109,25 +107,25 @@ class TempConfigBaseDir:
     def __init__(self, cockpit_conf={}, depot_conf={}):
         self._basedir = tempfile.TemporaryDirectory()
 
-        os.mkdir(self.cockpit_basedir)
+        self.cockpit_basedir.mkdir()
         self._write_config(self.cockpit_filepath, cockpit_conf)
         self._write_config(self.depot_filepath, depot_conf)
 
     @property
-    def path(self):
-        return self._basedir.name
+    def path(self) -> Path:
+        return Path(self._basedir.name)
 
     @property
-    def cockpit_basedir(self):
-        return os.path.join(self.path, 'cockpit')
+    def cockpit_basedir(self) -> Path:
+        return self.path / 'cockpit'
 
     @property
-    def cockpit_filepath(self):
-        return os.path.join(self.cockpit_basedir, 'cockpit.conf')
+    def cockpit_filepath(self) -> Path:
+        return self.cockpit_basedir / 'cockpit.conf'
 
     @property
-    def depot_filepath(self):
-        return os.path.join(self.cockpit_basedir, 'depot.conf')
+    def depot_filepath(self) -> Path:
+        return self.cockpit_basedir / 'depot.conf'
 
     def _write_config(self, filepath, config_dict):
         config = configparser.ConfigParser()
@@ -145,8 +143,9 @@ class TempConfigBaseDir:
 
 class TestConfigConverters(unittest.TestCase):
     def setUp(self):
-        self.config = configparser.ConfigParser(converters=
-                                                cockpit.config._type_converters)
+        self.config = configparser.ConfigParser(
+            converters=cockpit.config._type_converters
+        )
 
 
 class TestGetType(TestConfigConverters):
@@ -167,14 +166,16 @@ class TestGetType(TestConfigConverters):
 
 
 class TestGetPath(TestConfigConverters):
-    def assertPath(self, value, env, expected_expansion):
+    def assertPath(self, value, env, expected_path):
         self.config.read_dict({'sect' : {'opt' : value}})
         with patched_env(env):
-            self.assertEqual(self.config.getpath('sect', 'opt'),
-                             expected_expansion)
+            self.assertTupleEqual(
+                self.config.getpath('sect', 'opt').parts,
+                expected_path.parts,
+            )
 
     def test_expandvars(self):
-        self.assertPath('$FOO/bar', {'FOO' : '/foo'}, '/foo/bar')
+        self.assertPath('$FOO/bar', {'FOO' : '/foo'}, Path('/foo/bar'))
 
     def test_tilde_in_expanded_var(self):
         """Tilde expansion happens before variable expansion.
@@ -182,7 +183,7 @@ class TestGetPath(TestConfigConverters):
         Tilde expansion must occur before variable expansion, so if
         the variable has a tilde, the tilde should not get expanded.
         """
-        self.assertPath('$FOO/bar', {'FOO' : '~'}, '~/bar')
+        self.assertPath('$FOO/bar', {'FOO' : '~'}, Path('~/bar'))
 
 
 class TestGetPaths(TestConfigConverters):
@@ -190,29 +191,32 @@ class TestGetPaths(TestConfigConverters):
         txt = ('[sec]\n'
                'opt = %s' % (value))
         self.config.read_string(txt)
-        self.assertListEqual(self.config.getpaths('sec', 'opt'), paths)
+        for parsed, expected in zip(self.config.getpaths('sec', 'opt'), paths):
+            self.assertTupleEqual(parsed.parts, expected.parts)
 
     def test_multiple_paths(self):
         txt = ('path/to/file1\n'
                '  with whitespace  \n'
                '    /and/trailing whitespace/too  \n'
                '  /path/to/file3\n')
-        paths = ['path/to/file1',
-                 'with whitespace',
-                 '/and/trailing whitespace/too',
-                 '/path/to/file3']
+        paths = [
+            Path('path/to/file1'),
+            Path('with whitespace'),
+            Path('/and/trailing whitespace/too'),
+            Path('/path/to/file3'),
+        ]
         self.assertPaths(txt, paths)
 
     def test_single_path(self):
         """getpaths() is not confused with single path case"""
-        self.assertPaths('path/to/file1\n', ['path/to/file1'])
+        self.assertPaths('path/to/file1\n', [Path('path/to/file1')])
 
     def test_empty_lines(self):
         """Empty lines are ignored"""
         txt = ('path/to/file1\n'
                '  \n'
                '  /path/to/file3\n')
-        paths = ['path/to/file1', '/path/to/file3']
+        paths = [Path('path/to/file1'), Path('/path/to/file3')]
         self.assertPaths(txt, paths)
 
 
@@ -237,24 +241,29 @@ class TestLinuxPaths(unittest.TestCase):
     def assertConfigDirs(self, env_value, expected):
         with patched_env({'XDG_CONFIG_DIRS' : env_value}):
             observed = cockpit.config.default_system_cockpit_config_files()
-        self.assertListEqual(observed, expected)
+        for observed_path, expected_path in zip(observed, expected):
+            self.assertTupleEqual(observed_path.parts, expected_path.parts)
 
     def test_multiple_config_dirs(self):
         self.assertConfigDirs('/a:/c:/b',
-                              ['/a/cockpit/cockpit.conf',
-                               '/c/cockpit/cockpit.conf',
-                               '/b/cockpit/cockpit.conf'])
+                              [Path('/a/cockpit/cockpit.conf'),
+                               Path('/c/cockpit/cockpit.conf'),
+                               Path('/b/cockpit/cockpit.conf')])
 
     def test_ignoring_empty_path_entry(self):
         """Ignore empty paths in XDG_CONFIG_DIRS"""
         self.assertConfigDirs(':/a:/c/d::/b:',
-                              ['/a/cockpit/cockpit.conf',
-                               '/c/d/cockpit/cockpit.conf',
-                               '/b/cockpit/cockpit.conf'])
+                              [Path('/a/cockpit/cockpit.conf'),
+                               Path('/c/d/cockpit/cockpit.conf'),
+                               Path('/b/cockpit/cockpit.conf')])
 
     def test_empty_xdg_variable(self):
         """Ignore set but empty XDG_CONFIG_DIRS variable"""
-        self.assertConfigDirs('', ['/etc/xdg/cockpit/cockpit.conf'])
+        self.assertConfigDirs('', [Path('/etc/xdg/cockpit/cockpit.conf')])
+
+    def test_empty_xdg_list(self):
+        """Ignore set but empty list XDG_CONFIG_DIRS variable"""
+        self.assertConfigDirs('::', [Path('/etc/xdg/cockpit/cockpit.conf')])
 
     def test_default_without_xdg_variables(self):
         """Default files and directories in Linux systems"""
@@ -262,17 +271,17 @@ class TestLinuxPaths(unittest.TestCase):
             for var in ('XDG_CONFIG_DIRS', 'XDG_STATE_HOME', 'XDG_CONFIG_HOME'):
                 os.environ.pop(var, None)
             self.assertEqual(cockpit.config.default_system_cockpit_config_files(),
-                             ['/etc/xdg/cockpit/cockpit.conf'])
+                             [Path('/etc/xdg/cockpit/cockpit.conf')])
             self.assertEqual(cockpit.config.default_system_depot_config_files(),
-                             ['/etc/xdg/cockpit/depot.conf'])
+                             [Path('/etc/xdg/cockpit/depot.conf')])
             self.assertEqual(cockpit.config.default_user_cockpit_config_files(),
-                             ['/srv/people/.config/cockpit/cockpit.conf'])
+                             [Path('/srv/people/.config/cockpit/cockpit.conf')])
             self.assertEqual(cockpit.config.default_user_depot_config_files(),
-                             ['/srv/people/.config/cockpit/depot.conf'])
+                             [Path('/srv/people/.config/cockpit/depot.conf')])
             self.assertEqual(cockpit.config._default_log_dir(),
-                             '/srv/people/.local/state/cockpit')
+                             Path('/srv/people/.local/state/cockpit'))
             self.assertEqual(cockpit.config._default_user_config_dir(),
-                             '/srv/people/.config/cockpit')
+                             Path('/srv/people/.config/cockpit'))
 
 
 class TestConfigReading(unittest.TestCase):
@@ -353,7 +362,7 @@ class TestConfigReading(unittest.TestCase):
     def test_depot_file(self, depot_read_mock):
         """--depot-file prevents default from being read"""
         depot_config = TempConfigFile()
-        call_cockpit('--depot-file', depot_config.path)
+        call_cockpit('--depot-file', str(depot_config.path))
         self.assertFilesRead(depot_read_mock, [depot_config])
 
     @mock_depot_config_read
@@ -369,11 +378,11 @@ class TestConfigReading(unittest.TestCase):
         file_tmp = TempConfigFile()
         config_file = TempConfigFile('[global]\n'
                                      'depot-files = %s\n'
-                                     % (file_tmp.path))
+                                     % (str(file_tmp.path)))
         cmd_tmp = TempConfigFile()
         call_cockpit('--no-config-files',
-                     '--depot-file', cmd_tmp.path,
-                     '--config-file', config_file.path)
+                     '--depot-file', str(cmd_tmp.path),
+                     '--config-file', str(config_file.path))
         self.assertFilesRead(depot_read_mock, [cmd_tmp])
 
     @mock_depot_config_read
@@ -385,10 +394,10 @@ class TestConfigReading(unittest.TestCase):
         cockpit1 = TempConfigFile()
         cockpit2 = TempConfigFile()
         call_cockpit('--no-config-files',
-                     '--config-file', cockpit1.path,
-                     '--config-file', cockpit2.path,
-                     '--depot-file', depot1.path,
-                     '--depot-file', depot2.path)
+                     '--config-file', str(cockpit1.path),
+                     '--config-file', str(cockpit2.path),
+                     '--depot-file', str(depot1.path),
+                     '--depot-file', str(depot2.path))
         self.assertFilesRead(cockpit_read_mock, [cockpit1, cockpit2])
         self.assertFilesRead(depot_read_mock, [depot1, depot2])
 
@@ -461,8 +470,11 @@ class TestCockpitConfigPrecedence(unittest.TestCase):
         Test that the order in XDG_CONFIG_DIRS integrates correctly
         with the rest of the config parsing.
         """
-        with patched_env({'XDG_CONFIG_DIRS' : self.sys2.path+':'+self.sys1.path,
-                         'XDG_CONFIG_HOME' : self.user.path}):
+        tmp_env = {
+            'XDG_CONFIG_DIRS' : self.sys2.path.as_posix() + ':' + self.sys1.path.as_posix(),
+            'XDG_CONFIG_HOME' : self.user.path.as_posix()
+        }
+        with patched_env(tmp_env):
             config = call_cockpit()
         self.assertOptionsOrigin(config, {'user' : 'abc',
                                           'sys1' : 'e',
@@ -483,8 +495,12 @@ class TestCockpitConfigPrecedence(unittest.TestCase):
     def test_all(self):
         """Precedence with multiple system-wide, user, and command line"""
         with patched_config_dirs([self.sys2, self.sys1], self.user):
-            config = call_cockpit('--config-file', self.cmd1.cockpit_filepath,
-                                  '--config-file', self.cmd2.cockpit_filepath)
+            config = call_cockpit(
+                '--config-file',
+                str(self.cmd1.cockpit_filepath),
+                '--config-file',
+                str(self.cmd2.cockpit_filepath),
+            )
         self.assertOptionsOrigin(config, {'cmd2' : 'a',
                                           'cmd1' : 'b',
                                           'user' : 'c',
@@ -501,8 +517,8 @@ class TestDepotConfig(unittest.TestCase):
                                'qux: bar\n')
         with self.assertRaises(configparser.DuplicateSectionError):
             call_cockpit('--no-config-files',
-                         '--depot-file', file1.path,
-                         '--depot-file', file2.path)
+                         '--depot-file', str(file1.path),
+                         '--depot-file', str(file2.path))
 
     def test_read(self):
         """Depot files are read and merged."""
@@ -513,8 +529,8 @@ class TestDepotConfig(unittest.TestCase):
                                'type: foo\n'
                                'bar: grob\n')
         config = call_cockpit('--no-config-files',
-                              '--depot-file', file1.path,
-                              '--depot-file', file2.path)
+                              '--depot-file', str(file1.path),
+                              '--depot-file', str(file2.path))
         depot = config.depot_config
         self.assertEqual(dict(depot['dev1']), {'type': 'bar', 'foo': 'qux'})
         self.assertEqual(dict(depot['dev2']), {'type': 'foo', 'bar': 'grob'})
@@ -546,7 +562,7 @@ class TestDepotConfig(unittest.TestCase):
         """
         existing_file = TempConfigFile()
         with tempfile.TemporaryDirectory() as existing_dir:
-            missing_file = os.path.join(existing_dir, 'missing.conf')
+            missing_file = Path(existing_dir) / 'missing.conf'
             depot = cockpit.config.DepotConfig([existing_file.path,
                                                 missing_file])
         self.assertEqual(depot.files, [existing_file.path])

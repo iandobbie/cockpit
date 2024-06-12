@@ -49,6 +49,7 @@
 ## ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ## POSSIBILITY OF SUCH DAMAGE.
 
+from pathlib import Path
 
 from cockpit.gui import imageSequenceViewer
 import cockpit.util.datadoc
@@ -57,7 +58,7 @@ import cockpit.util.datadoc
 
 ## This viewer loads a file and shows the images in it. 
 class FileViewer(imageSequenceViewer.ImageSequenceViewer):
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename: Path, *args, **kwargs):
         doc = cockpit.util.datadoc.DataDoc(filename)
         images = doc.imageArray
 
