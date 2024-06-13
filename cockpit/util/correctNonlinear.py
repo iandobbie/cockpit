@@ -78,6 +78,7 @@ import numpy
 import scipy.ndimage
 import sys
 import time
+from pathlib import Path
 
 
 class Corrector:
@@ -270,14 +271,14 @@ if __name__ == '__main__':
         arg = sys.argv[i]
         if arg == '-map':
             i += 1
-            mapFile = sys.argv[i]
+            mapFile = Path(sys.argv[i])
         elif arg == '-data':
             curItem = dataFiles
         elif arg == '-suf':
             i += 1
             suffix = sys.argv[i]
         else:
-            curItem.append(arg)
+            curItem.append(Path(arg))
         i += 1
 
     # Load the map file and separate out the exposure times from the individual
@@ -311,7 +312,7 @@ if __name__ == '__main__':
                     print (filename, timepoint, z)
                     result[wavelength, timepoint, z] = corrector.correct(inputData[wavelength, timepoint, z])
         correctionTimes.append(time.time() - subStart)
-        datadoc.writeDataAsMrc(result, filename + suffix)
+        datadoc.writeDataAsMrc(result, filename.with_suffix(suffix))
     #    print ("%s: %.2f, %.2f, %.2f, %.2f" % (filename, result.min(), result.max(), numpy.mean(result), numpy.std(result)))
 
     overallTime = time.time() - start

@@ -57,6 +57,8 @@ import numpy
 import queue
 import threading
 import time
+from pathlib import Path
+from typing import List
 
 import wx
 
@@ -86,7 +88,7 @@ class DataSaver:
     # \param cameraToExcitation Maps camera handlers to the excitation
     #        wavelength used to generate the images it will acquire.
     def __init__(self, cameras, numReps, repDuration, cameraToImagesPerRep,
-                 cameraToIgnoredImageIndices, runThread, savePath, pixelSizeZ,
+                 cameraToIgnoredImageIndices, runThread, savePath: Path, pixelSizeZ,
                  titles, cameraToExcitation):
         self.cameras = cameras
         self.numReps = numReps
@@ -189,7 +191,7 @@ class DataSaver:
             # need 1.
             formatString = "%0" + str(numDigits) + "d"
             for i in range(numFilehandles):
-                filename = "%s.%s" % (savePath, formatString % i)
+                filename = savePath.with_suffix("." + (formatString % i))
                 self.filehandles.append(open(filename, 'wb'))
                 self.filenames.append(filename)
         else:
@@ -524,7 +526,7 @@ class DataSaver:
 
 
     ## Return a list of the filenames we are writing to.
-    def getFilenames(self):
+    def getFilenames(self) -> List[Path]:
         return self.filenames
 
 

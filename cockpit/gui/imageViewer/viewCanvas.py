@@ -68,6 +68,7 @@ import traceback
 import wx
 import wx.glcanvas
 import operator
+from pathlib import Path
 
 
 ## @package cockpit.gui.imageViewer.viewCanvas
@@ -983,7 +984,7 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() != wx.ID_OK:
                 return
-            path = fileDialog.GetPath()
+            path = Path(fileDialog.GetPath())
         # TODO: add XYsize and wavelength to saved data. These can be passed as
         # kwargs, but the way per-camera pixel sizes are handled needs to be
         # addressed first. See issue #538.

@@ -486,7 +486,7 @@ class SIExperiment(experiment.Experiment):
 
         ## Windows needs to have the file removed first.
         if os.name == "nt":
-            os.remove(self.savePath)
+            self.savePath.unlink()
         shutil.move(tmp_fh.name, self.savePath)
         return
 

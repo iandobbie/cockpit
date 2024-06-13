@@ -179,7 +179,7 @@ class CockpitApp(wx.App):
             )
             self._stage = cockpit.interfaces.stageMover.mover
             self._channels = cockpit.interfaces.channels.Channels()
-            for fpath in self.Config['global'].getpaths('channel-files', ''):
+            for fpath in self.Config['global'].getpaths('channel-files', []):
                 new_channels = cockpit.interfaces.channels.LoadFromFile(fpath)
                 self._channels.Update(new_channels)
 

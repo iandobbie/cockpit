@@ -66,6 +66,8 @@ import cockpit.util.userConfig
 import numpy
 import threading
 import time
+from pathlib import Path
+
 import wx
 
 
@@ -91,7 +93,7 @@ class OffsetGainCorrectionExperiment(experiment.Experiment):
     # \param shouldPreserveIntermediaryFiles If True, then save the raw data
     #        to a separate file, alongside the actual result file.
     def __init__(self, cameras, lights, exposureSettings, numExposures, 
-            savePath, exposureMultiplier = 2, maxIntensity = 2 ** 12, 
+            savePath: Path, exposureMultiplier = 2, maxIntensity = 2 ** 12, 
             cosmicRayThreshold = 10, numCollections = 5,
             shouldPreserveIntermediaryFiles = False, **kwargs):
         # Note we fill in some dummy values here since we don't actually 
@@ -265,9 +267,13 @@ class OffsetGainCorrectionExperiment(experiment.Experiment):
             images = imageData[:self.camToNumImagesReceived[camera]]
             if self.shouldPreserveIntermediaryFiles:
                 # Save the raw data.
-                cockpit.util.datadoc.writeDataAsMrc(images.astype(numpy.uint16),
-                        '%s-raw-%s-%d' % (self.savePath, camera.name, multiplier))
-                
+                cockpit.util.datadoc.writeDataAsMrc(
+                    images.astype(numpy.uint16),
+                    self.savePath.with_suffix(
+                        '-raw-%s-%d' % (camera.name, multiplier)
+                    )
+                )
+
             stdDev = numpy.std(images)
             median = numpy.median(images)
             print ("For camera",camera,"have median",median,"and std",stdDev)

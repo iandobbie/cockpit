@@ -53,6 +53,8 @@ from cockpit import depot
 from cockpit.experiment import experiment
 
 import time
+from typing import Optional
+from pathlib import Path
 
 
 ## Immediate-mode experiments are Experiments which perform actions via the
@@ -68,7 +70,7 @@ class ImmediateModeExperiment(experiment.Experiment):
     # And of course we need the save path for the file (or else no data will
     # be recorded). Optionally, additional metadata can be supplied.
     def __init__(self, numReps, repDuration, imagesPerRep, sliceHeight = 0,
-            metadata = '', savePath = ''):
+                 metadata = '', savePath: Optional[Path] = None):
         super().__init__(numReps, repDuration,
                 None, 0, 0, sliceHeight, {},
                 metadata = metadata, savePath = savePath)

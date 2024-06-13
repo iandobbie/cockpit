@@ -75,6 +75,8 @@ import matplotlib.figure
 import numpy
 import threading
 import wx
+from typing import Optional
+from pathlib import Path
 
 
 ## Provided so the UI knows what to call this experiment.
@@ -95,7 +97,7 @@ class ResponseMapExperiment(offsetGainCorrection.OffsetGainCorrectionExperiment)
     # \param shouldPreserveIntermediaryFiles If True, then save the raw
     #        data in addition to the averaged files.
     def __init__(self, cameras, lights, exposureSettings, numExposures, 
-            savePath, exposureTimes, cosmicRayThreshold,
+            savePath: Optional[Path], exposureTimes, cosmicRayThreshold,
             shouldPreserveIntermediaryFiles, **kwargs):
         # Fill in some dummy values here for parameters that we don't actually
         # use.
@@ -318,8 +320,12 @@ class ResponseMapExperiment(offsetGainCorrection.OffsetGainCorrectionExperiment)
             raws.append(images[-1])
             if self.shouldPreserveIntermediaryFiles:
                 # Save the raw data.
-                cockpit.util.datadoc.writeDataAsMrc(images.astype(numpy.uint16),
-                        '%s-raw-%s-%04.5fms' % (self.savePath, camera.name, exposureTime))
+                cockpit.util.datadoc.writeDataAsMrc(
+                    images.astype(numpy.uint16),
+                    self.savePath.with_suffix(
+                        "-raw-%s-%04.5fms" % (camera.name, exposureTime)
+                    )
+                )
 
             # Calculate a threshold for cosmic ray strikes.
             stdDev = numpy.std(images)

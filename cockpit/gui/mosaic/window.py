@@ -56,6 +56,7 @@ import threading
 import time
 import sys
 from functools import wraps
+from pathlib import Path
 
 import numpy
 import scipy.ndimage
@@ -1086,20 +1087,20 @@ class MosaicWindow(wx.Frame, MosaicCommon):
     def saveSitesToFile(self, event = None):
         dialog = wx.FileDialog(self, style = wx.FD_SAVE, wildcard = '*.txt',
                 message = "Please select where to save the file.",
-                defaultDir=wx.GetApp().Config.getpath('global', 'data-dir'))
+                defaultDir=str(wx.GetApp().Config.getpath('global', 'data-dir')))
         if dialog.ShowModal() != wx.ID_OK:
             return
-        cockpit.interfaces.stageMover.writeSitesToFile(dialog.GetPath())
+        cockpit.interfaces.stageMover.writeSitesToFile(Path(dialog.GetPath()))
 
 
     ## Load sites from a file.
     def loadSavedSites(self, event = None):
         dialog = wx.FileDialog(self, style = wx.FD_OPEN, wildcard = '*.txt',
                 message = "Please select the file to load.",
-                defaultDir=wx.GetApp().Config.getpath('global', 'data-dir'))
+                defaultDir=str(wx.GetApp().Config.getpath('global', 'data-dir')))
         if dialog.ShowModal() != wx.ID_OK:
             return
-        cockpit.interfaces.stageMover.loadSites(dialog.GetPath())
+        cockpit.interfaces.stageMover.loadSites(Path(dialog.GetPath()))
 
 
     ## A new site was created (from any source); add it to our sites box.
@@ -1228,10 +1229,10 @@ class MosaicWindow(wx.Frame, MosaicCommon):
     def saveMosaic(self, event = None):
         dialog = wx.FileDialog(self, style = wx.FD_SAVE, wildcard = '*.txt',
                 message = "Please select where to save the file.",
-                defaultDir=wx.GetApp().Config.getpath('global', 'data-dir'))
+                defaultDir=str(wx.GetApp().Config.getpath('global', 'data-dir')))
         if dialog.ShowModal() != wx.ID_OK:
             return
-        self.canvas.saveTiles(dialog.GetPath())
+        self.canvas.saveTiles(Path(dialog.GetPath()))
 
 
     ## Load a mosaic that was previously saved to disk.
@@ -1240,7 +1241,7 @@ class MosaicWindow(wx.Frame, MosaicCommon):
                 message = "Please select the .txt file the mosaic was saved to.")
         if dialog.ShowModal() != wx.ID_OK:
             return
-        self.canvas.loadTiles(dialog.GetPath())
+        self.canvas.loadTiles(Path(dialog.GetPath()))
 
 
     ## Prepare to mark bead centers.

@@ -20,6 +20,7 @@
 
 import tempfile
 import unittest
+from pathlib import Path
 
 import numpy
 import numpy.testing
@@ -33,8 +34,8 @@ class TestWriteDataAsMrc(unittest.TestCase):
 
     def assertWriteAndReadingBack(self):
         with tempfile.NamedTemporaryFile() as fh:
-            datadoc.writeDataAsMrc(self.data, fh.name)
-            doc = datadoc.DataDoc(fh.name)
+            datadoc.writeDataAsMrc(self.data, Path(fh.name))
+            doc = datadoc.DataDoc(Path(fh.name))
         numpy.testing.assert_equal(doc.getImageArray().squeeze(), self.data)
 
     def test_write_and_read(self):
