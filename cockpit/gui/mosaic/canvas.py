@@ -64,7 +64,7 @@ import queue
 import time
 import numpy as np
 import wx.lib.newevent
-
+from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 
@@ -510,9 +510,9 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
             ),
         )
         handle = open(savePath, 'w')
-        mrcPath = savePath + '.mrc'
-        if '.txt' in savePath:
-            mrcPath = savePath.replace('.txt', '.dv')
+        mrcPath = savePath.with_suffix('.mrc')
+        if savePath.suffix == '.txt':
+            mrcPath = savePath.with_suffix('.dv')
         handle.write("%s\n" % mrcPath)
         width = 0
         height = 0
@@ -594,7 +594,7 @@ class MosaicCanvas(wx.glcanvas.GLCanvas):
     @cockpit.util.threads.callInNewThread
     def loadTiles(self, filePath):
         with open(filePath, 'r') as handle:
-            mrcPath = handle.readline().strip()
+            mrcPath = Path(handle.readline().strip())
             tileStats = []
             for line in handle:
                 # X position, Y position, Z position, 
