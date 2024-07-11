@@ -794,24 +794,27 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
     def setColImage(self, newImage, colour):
         #testing hack assume 3 cols r,g,b
         
-        #cols is list of active cams
-        numcams = len(wx.GetApp().Imager.activeCameras)
-        if self.numCols != numcams:
-            #new image needed as num actvie cams has changed
-            self.cols=[False] * numcams
-            self.definedROI = False # new image will have new ROI.
-            #this assumes that all cams have the same shape, avoiding this
-            #is not trivial
-            self.colImage = np.zeros((numcams,newImage.shape[0],
-                                      newImage.shape[1]))
+        # #cols is list of active cams
+        # numcams = len(wx.GetApp().Imager.activeCameras)
+        # if self.numCols != numcams:
+        #     #new image needed as num actvie cams has changed
+        #     self.cols=[False] * numcams
+        #     self.definedROI = False # new image will have new ROI.
+        #     #this assumes that all cams have the same shape, avoiding this
+        #     #is not trivial
+        #     self.colImage = np.zeros((numcams,newImage.shape[0],
+        #                               newImage.shape[1]))
         print("got image", colour)
-        self.cols[colour-1]=True
+#        self.cols[colour-1]=True
+        self.colimageQueue.put_nowait((colour,newImage))
 
-        self.colImage[colour-1,:,:]=newImage
-        if all(self.cols):
-            self.colimageQueue.put_nowait(colImage)
-            #reset cols array to expect new images
-            self.cols=[False] * numcams
+ #       self.colImage[colour-1,:,:]=newImage
+        print (colour)
+        # if all(self.cols):
+        #     print("put col image in queue")
+        #     self.colimageQueue.put_nowait((col,newImage))
+        #     #reset cols array to expect new images
+        #     self.cols=[False] * numcams
 
 
         
@@ -849,9 +852,10 @@ class ViewCanvas(wx.glcanvas.GLCanvas):
                 self.drawEvent.clear()
 
             elif not self.colimageQueue.empty():
-                colImage = self.colimageQueue.get()
+                print("got col image")
+                (col,colImage) = self.colimageQueue.get()
                 print("col image = ",col)
-                self.image.setData(colImage)
+                self.image.setData(colImage,col)
                 #hack to present a single histogram, need a new colour hist)
                 self.histogram.setData(colImage[0])
                 wx.CallAfter(self.Refresh)

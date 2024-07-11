@@ -28,5 +28,10 @@ def makeWindow(parent):
     window = ShellWindow(parent)
     window.shell.run('import wx')
     window.shell.run('depot = wx.GetApp().Depot')
+
+    window.shell.run('depot.getDeviceWithName("Dummy camera 1").handler.wavelength=460')
+    window.shell.run('depot.getDeviceWithName("Dummy camera 2").handler.wavelength=520')
+    window.shell.run('depot.getDeviceWithName("Dummy camera 3").handler.wavelength=640')
+
     # Default icon for the ShellFrame is the PyCrust, so replace it.
     window.SetIcon(parent.GetIcon())
