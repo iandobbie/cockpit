@@ -376,7 +376,7 @@ class ColourImage(BaseGL):
         ## Should we use colour to indicate range clipping?
         self.clipHighlight = False
         # Data
-        self._data = None
+        self._data = np.zeros((3,512,512) None
         # Minimum and maximum data value - used for setting greyscale range.
         self.dptp = 1
         self.dmin = 0
@@ -414,7 +414,7 @@ class ColourImage(BaseGL):
         self.vmax = float(vmax)
 
     def setData(self, data, col):
-        self._data = data
+        self._data[col] = data
         self._update = True
 
     def toggleClipHighlight(self, event=None):
@@ -425,14 +425,18 @@ class ColourImage(BaseGL):
 
         Needs GL context to be set prior to call, and should only
         be called in the main thread."""
+        #needs to check image size and redo textures if it has changed,
+        #then needs to be x,y,3 col for rgb?
+        #finally textures need to rgb (or rgba?) rather than just r.
+                              
         if self._data is None:
             return
         self._maxTexEdge = glGetInteger(GL_MAX_TEXTURE_SIZE)
         data = self._data
         glPixelStorei(GL_UNPACK_SWAP_BYTES, False)
         # Ensure the right number of textures available.
-        nx = int(np.ceil(data.shape[1] / self._maxTexEdge))
-        ny = int(np.ceil(data.shape[0] / self._maxTexEdge))
+        nx = int(np.ceil(data.shape[2] / self._maxTexEdge))
+        ny = int(np.ceil(data.shape[1] / self._maxTexEdge))
         self.shape = (nx, ny)
         ntex = nx * ny
         if ntex > len(self._textures):
