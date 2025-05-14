@@ -230,7 +230,7 @@ class Experiment:
             if not guiUtils.getUserPermission(warning):
                 return False
             #set repDuration to the last table action
-            self.repDuration= self.table.lastActionTime / 100
+            self.repDuration= float(self.table.lastActionTime) / 1000.0
 
         if not self.lastMinuteActions():
             return False
