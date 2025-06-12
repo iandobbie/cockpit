@@ -376,7 +376,7 @@ class ColourImage(BaseGL):
         ## Should we use colour to indicate range clipping?
         self.clipHighlight = False
         # Data
-        self._data = np.zeros((3,512,512) None
+        self._data = np.zeros((3,512,512))
         # Minimum and maximum data value - used for setting greyscale range.
         self.dptp = 1
         self.dmin = 0
@@ -414,7 +414,7 @@ class ColourImage(BaseGL):
         self.vmax = float(vmax)
 
     def setData(self, data, col):
-        self._data[col] = data
+        self._data[col-1] = data
         self._update = True
 
     def toggleClipHighlight(self, event=None):
@@ -432,8 +432,10 @@ class ColourImage(BaseGL):
         if self._data is None:
             return
         self._maxTexEdge = glGetInteger(GL_MAX_TEXTURE_SIZE)
+        print(self._maxTexEdge)
         data = self._data
         glPixelStorei(GL_UNPACK_SWAP_BYTES, False)
+        print(data.shape)
         # Ensure the right number of textures available.
         nx = int(np.ceil(data.shape[2] / self._maxTexEdge))
         ny = int(np.ceil(data.shape[1] / self._maxTexEdge))
@@ -450,7 +452,7 @@ class ColourImage(BaseGL):
         if ntex == 1:
             # Data will fit into a single texture.
             # Do we need to round these up to a power of 2?
-            ty, tx = data.shape
+            col, ty, tx = data.shape
         else:
             # Need to use multiple textures to store data.
             tx = ty = self._maxTexEdge
@@ -487,6 +489,7 @@ class ColourImage(BaseGL):
         vlim = self._data.shape[0] / max(self._data.shape)
         # Number of x and y textures.
         nx, ny = self.shape
+        print("shape=",self.shape)
         # Quad dimensions for one texture.
         dx = 2 * hlim / nx
         dy = 2 * vlim / ny
